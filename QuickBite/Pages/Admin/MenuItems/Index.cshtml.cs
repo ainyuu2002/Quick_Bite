@@ -24,4 +24,18 @@ public class IndexModel : PageModel
             .OrderBy(m => m.Name)
             .ToListAsync();
     }
+
+    public async Task<IActionResult> OnPostToggleAvailableAsync(int id)
+    {
+        var menuItem = await _context.MenuItems.FindAsync(id);
+        if (menuItem is null)
+        {
+            return NotFound();
+        }
+
+        menuItem.IsAvailable = !menuItem.IsAvailable;
+        await _context.SaveChangesAsync();
+
+        return RedirectToPage();
+    }
 }

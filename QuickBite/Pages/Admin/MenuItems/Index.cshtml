@@ -21,12 +21,13 @@
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model.MenuItem) {
-        <tr>
-            <td>@item.Name</td>
-            <td>@item.Category?.Name</td>
-            <td>@item.Price.ToString("N0") đ</td>
-            <td>
+        @foreach (var item in Model.MenuItem)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Category?.Name</td>
+                <td>@item.Price.ToString("N0") đ</td>
+                <td>
                     @if (item.IsAvailable)
                     {
                         <span class="badge bg-success">Còn hàng</span>
@@ -35,11 +36,21 @@
                     {
                         <span class="badge bg-secondary">Hết hàng</span>
                     }
-            </td>
-            <td>
-                <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Sửa</a>
-            </td>
-        </tr>
-}
+                </td>
+                <td>
+                    <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Sửa</a>
+                    <form method="post" asp-page-handler="ToggleAvailable" asp-route-id="@item.Id" class="d-inline">
+                        @if (item.IsAvailable)
+                        {
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Ẩn (hết hàng)</button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-outline-success btn-sm">Hiện (còn hàng)</button>
+                        }
+                    </form>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
