@@ -1,0 +1,73 @@
+@page
+@model QuickBite.Pages.Admin.MenuItems.IndexModel
+
+@{
+    ViewData["Title"] = "Quản lý món ăn";
+}
+
+<h1>Quản lý món ăn</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<p>
+    <a asp-page="Create" class="btn btn-primary btn-sm">+ Thêm món mới</a>
+</p>
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Ảnh</th>
+            <th>Tên món</th>
+            <th>Danh mục</th>
+            <th>Giá</th>
+            <th>Còn hàng</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.MenuItem)
+        {
+            <tr>
+                <td>
+                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                    {
+                        <img src="@item.ImageUrl" alt="@item.Name" style="width:40px;height:40px;object-fit:cover;" class="rounded" />
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </td>
+                <td>@item.Name</td>
+                <td>@item.Category?.Name</td>
+                <td>@item.Price.ToString("N0") đ</td>
+                <td>
+                    @if (item.IsAvailable)
+                    {
+                        <span class="badge bg-success">Còn hàng</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Hết hàng</span>
+                    }
+                </td>
+                <td>
+                    <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Sửa</a>
+                    <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm">Xóa</a>
+                    <form method="post" asp-page-handler="ToggleAvailable" asp-route-id="@item.Id" class="d-inline">
+                        @if (item.IsAvailable)
+                        {
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Ẩn (hết hàng)</button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-outline-success btn-sm">Hiện (còn hàng)</button>
+                        }
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
