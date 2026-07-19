@@ -19,6 +19,9 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        MenuItem = await _context.MenuItems.ToListAsync();
+        MenuItem = await _context.MenuItems
+            .Include(m => m.Category)
+            .OrderBy(m => m.Name)
+            .ToListAsync();
     }
 }

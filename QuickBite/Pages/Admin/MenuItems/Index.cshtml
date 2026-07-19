@@ -2,81 +2,42 @@
 @model QuickBite.Pages.Admin.MenuItems.IndexModel
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý món ăn";
 }
 
-<h1>Index</h1>
+<h1>Quản lý món ăn</h1>
 
 <p>
-    <a asp-page="Create">Create New</a>
+    <a asp-page="Create" class="btn btn-primary btn-sm">+ Thêm món mới</a>
 </p>
-<table class="table">
+<table class="table table-striped align-middle">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.MenuItem[0].Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MenuItem[0].Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MenuItem[0].Price)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MenuItem[0].ImageUrl)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MenuItem[0].IsAvailable)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MenuItem[0].CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MenuItem[0].CategoryId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MenuItem[0].Category)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MenuItem[0].OrderItems)
-            </th>
+            <th>Tên món</th>
+            <th>Danh mục</th>
+            <th>Giá</th>
+            <th>Còn hàng</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
 @foreach (var item in Model.MenuItem) {
         <tr>
+            <td>@item.Name</td>
+            <td>@item.Category?.Name</td>
+            <td>@item.Price.ToString("N0") đ</td>
             <td>
-                @Html.DisplayFor(model => item.Name)
+                    @if (item.IsAvailable)
+                    {
+                        <span class="badge bg-success">Còn hàng</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Hết hàng</span>
+                    }
             </td>
             <td>
-                @Html.DisplayFor(model => item.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Price)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.ImageUrl)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.IsAvailable)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.CategoryId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Category)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.OrderItems)
-            </td>
-            <td>
-                <a asp-page="./Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-page="./Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-page="./Delete" asp-route-id="@item.Id">Delete</a>
+                <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Sửa</a>
             </td>
         </tr>
 }
