@@ -5,6 +5,11 @@
 }
 
 <div class="text-center">
+
+    @* TODO (Dev D): nút test tạm — xóa khi OrderService.CreateOrderAsync (Dev C) tự bắn "NewOrder", xem Hubs/EVENTS.md *@
+    <form method="post" asp-page-handler="Test">
+        <button type="submit" class="btn btn-primary">Bắn thử đơn hàng</button>
+    </form>
     <h1 class="display-4">Welcome</h1>
     <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 </div>

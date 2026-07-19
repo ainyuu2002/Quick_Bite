@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
+using QuickBite.Hubs;
 using QuickBite.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,8 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.UseSession();
+
+app.MapHub<OrderHub>("/orderHub");
 
 app.MapRazorPages();
 

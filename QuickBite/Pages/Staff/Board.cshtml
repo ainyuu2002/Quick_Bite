@@ -1,0 +1,29 @@
+﻿@page
+@model QuickBite.Pages.Staff.BoardModel
+
+<h2>Bảng đơn hàng</h2>
+<p>Nhân viên đang online: <strong id="staffOnline">@Model.StaffOnline</strong></p>
+<ul id="orderList"></ul>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/orderHub?role=staff")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("NewOrder", function (order) {
+            const li = document.createElement("li");
+            li.textContent = `Đơn #${order.id} — ${order.total}đ`;
+            document.getElementById("orderList").prepend(li);
+        });
+        connection.on("StaffOnlineChanged", function (count) {
+            document.getElementById("staffOnline").textContent = count;
+        });
+
+        connection.start()
+            .then(() => console.log("Đã kết nối SignalR"))
+            .catch(err => console.error(err));
+    </script>
+}
