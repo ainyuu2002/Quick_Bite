@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
+using QuickBite.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
