@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Models;
 using QuickBite.Data;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace QuickBite.Pages.Admin.MenuItems;
 
@@ -15,19 +16,25 @@ public class CreateModel : PageModel
         _context = context;
     }
 
-    public IActionResult OnGet()
-    {
-        return Page();
-    }
+    public SelectList CategoryList { get; set; } = default!;
 
     [BindProperty]
     public MenuItem MenuItem { get; set; } = default!;
 
-    // To protect from overposting attacks, see https://aka.ms/RazorPagesCRUD.
+    public async Task OnGetAsync()
+    {
+        CategoryList = new SelectList(
+            await _context.Categories.OrderBy(c => c.DisplayOrder).ToListAsync(),
+            "Id", "Name");
+    }
+
     public async Task<IActionResult> OnPostAsync()
     {
         if (!ModelState.IsValid)
         {
+            CategoryList = new SelectList(
+                await _context.Categories.OrderBy(c => c.DisplayOrder).ToListAsync(),
+                "Id", "Name");
             return Page();
         }
 
