@@ -2,75 +2,49 @@
 @model QuickBite.Pages.Admin.MenuItems.EditModel
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Sửa món ăn";
 }
 
-<h1>Edit</h1>
+<h1>Sửa món ăn</h1>
 
-<h4>MenuItem</h4>
-<hr />
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-5">
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="MenuItem.Id" />
-            <div class="form-group">
-                <span class="text-danger">*</span>
-                <label asp-for="MenuItem.Name" class="control-label"></label>
-                <input asp-for="MenuItem.Name" class="form-control" aria-required="true"/>
+            <div class="mb-3">
+                <label asp-for="MenuItem.Name" class="form-label">Tên món</label>
+                <input asp-for="MenuItem.Name" class="form-control" />
                 <span asp-validation-for="MenuItem.Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="MenuItem.Description" class="control-label"></label>
-                <input asp-for="MenuItem.Description" class="form-control" />
+            <div class="mb-3">
+                <label asp-for="MenuItem.Description" class="form-label">Mô tả</label>
+                <textarea asp-for="MenuItem.Description" class="form-control"></textarea>
                 <span asp-validation-for="MenuItem.Description" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="MenuItem.Price" class="control-label"></label>
+            <div class="mb-3">
+                <label asp-for="MenuItem.Price" class="form-label">Giá (đ)</label>
                 <input asp-for="MenuItem.Price" class="form-control" />
                 <span asp-validation-for="MenuItem.Price" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="MenuItem.ImageUrl" class="control-label"></label>
+            <div class="mb-3">
+                <label asp-for="MenuItem.ImageUrl" class="form-label">URL hình ảnh</label>
                 <input asp-for="MenuItem.ImageUrl" class="form-control" />
                 <span asp-validation-for="MenuItem.ImageUrl" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="MenuItem.IsAvailable" class="control-label"></label>
-                <input asp-for="MenuItem.IsAvailable" class="form-check-input" />
-                <span asp-validation-for="MenuItem.IsAvailable" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="MenuItem.CreatedAt" class="control-label"></label>
-                <input asp-for="MenuItem.CreatedAt" class="form-control" />
-                <span asp-validation-for="MenuItem.CreatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="MenuItem.CategoryId" class="control-label"></label>
-                <input asp-for="MenuItem.CategoryId" class="form-control" />
+            <div class="mb-3">
+                <label asp-for="MenuItem.CategoryId" class="form-label">Danh mục</label>
+                <select asp-for="MenuItem.CategoryId" asp-items="Model.CategoryList" class="form-select"></select>
                 <span asp-validation-for="MenuItem.CategoryId" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="MenuItem.Category" class="control-label"></label>
-                <input asp-for="MenuItem.Category" class="form-control" />
-                <span asp-validation-for="MenuItem.Category" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="MenuItem.OrderItems" class="control-label"></label>
-                <input asp-for="MenuItem.OrderItems" class="form-control" />
-                <span asp-validation-for="MenuItem.OrderItems" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
+            <button type="submit" class="btn btn-primary">Lưu</button>
+            <a asp-page="./Index" class="btn btn-secondary">Hủy</a>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-page="./Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Models;
 using QuickBite.Data;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace QuickBite.Pages.Admin.MenuItems;
 
@@ -14,6 +15,8 @@ public class EditModel : PageModel
     {
         _context = context;
     }
+
+    public SelectList CategoryList { get; set; } = default!;
 
     [BindProperty]
     public MenuItem MenuItem { get; set; } = default!;
@@ -30,42 +33,38 @@ public class EditModel : PageModel
         {
             return NotFound();
         }
+
         MenuItem = menuitem;
+        CategoryList = new SelectList(
+            await _context.Categories.OrderBy(c => c.DisplayOrder).ToListAsync(),
+            "Id", "Name");
         return Page();
     }
 
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see https://aka.ms/RazorPagesCRUD.
     public async Task<IActionResult> OnPostAsync()
     {
         if (!ModelState.IsValid)
         {
+            CategoryList = new SelectList(
+                await _context.Categories.OrderBy(c => c.DisplayOrder).ToListAsync(),
+                "Id", "Name");
             return Page();
         }
 
-        _context.Attach(MenuItem).State = EntityState.Modified;
+        var menuItem = await _context.MenuItems.FindAsync(MenuItem.Id);
+        if(menuItem is null)
+        {
+            return NotFound();
+        }
 
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!MenuItemExists(MenuItem.Id))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
-        }
+        menuItem.Name = MenuItem.Name;
+        menuItem.Description = MenuItem.Description;
+        menuItem.Price = MenuItem.Price;
+        menuItem.ImageUrl = MenuItem.ImageUrl;
+        menuItem.CategoryId = MenuItem.CategoryId;
+
+        await _context.SaveChangesAsync();
 
         return RedirectToPage("./Index");
-    }
-
-    private bool MenuItemExists(int id)
-    {
-        return _context.MenuItems.Any(e => e.Id == id);
     }
 }
