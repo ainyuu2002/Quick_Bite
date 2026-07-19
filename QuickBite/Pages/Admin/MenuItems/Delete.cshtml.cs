@@ -46,11 +46,22 @@ public class DeleteModel : PageModel
         }
 
         var menuitem = await _context.MenuItems.FindAsync(id);
-        if (menuitem != null)
+        if (menuitem is null)
         {
-            MenuItem = menuitem;
-            _context.MenuItems.Remove(MenuItem);
+            return RedirectToPage("./Index");
+        }
+
+        _context.MenuItems.Remove(menuitem);
+
+        try
+        {
             await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            TempData["ErrorMessage"] =
+                $"Không thể xoá \"{menuitem.Name}\" vì món này đã có trong đơn hàng. " +
+                "Hãy dùng nút ẩn ở trang danh sách để ngừng bán thay vì xoá.";
         }
 
         return RedirectToPage("./Index");

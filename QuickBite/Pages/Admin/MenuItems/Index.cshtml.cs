@@ -17,6 +17,9 @@ public class IndexModel : PageModel
 
     public IList<MenuItem> MenuItem { get; set; } = default!;
 
+    [TempData]
+    public string? ErrorMessage { get; set; }
+
     public async Task OnGetAsync()
     {
         MenuItem = await _context.MenuItems

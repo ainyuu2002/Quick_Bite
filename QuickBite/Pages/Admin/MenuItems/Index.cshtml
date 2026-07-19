@@ -7,6 +7,11 @@
 
 <h1>Quản lý món ăn</h1>
 
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
 <p>
     <a asp-page="Create" class="btn btn-primary btn-sm">+ Thêm món mới</a>
 </p>
@@ -39,6 +44,7 @@
                 </td>
                 <td>
                     <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Sửa</a>
+                    <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm">Xóa</a>
                     <form method="post" asp-page-handler="ToggleAvailable" asp-route-id="@item.Id" class="d-inline">
                         @if (item.IsAvailable)
                         {
