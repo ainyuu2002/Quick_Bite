@@ -10,6 +10,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddSingleton<ConnectionTracker>();
+// TODO (Dev C): thêm implementation OrderService/CartService vào Services/ rồi bỏ comment 2 dòng dưới
+// builder.Services.AddScoped<OrderService>();
+// builder.Services.AddScoped<CartService>();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
