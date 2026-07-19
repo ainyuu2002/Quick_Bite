@@ -65,5 +65,11 @@ namespace QuickBite.Pages.Admin
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
             return RedirectToPage("/Index");
         }
+
+        public async Task<IActionResult> OnPostLogoutAsync()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToPage("/Admin/Login");
+        }
     }
 }
