@@ -25,7 +25,9 @@ public class DeleteModel : PageModel
             return NotFound();
         }
 
-        var menuitem = await _context.MenuItems.FirstOrDefaultAsync(m => m.Id == id);
+        var menuitem = await _context.MenuItems
+            .Include(m => m.Category)
+            .FirstOrDefaultAsync(m => m.Id == id);
         if (menuitem is null)
         {
             return NotFound();
