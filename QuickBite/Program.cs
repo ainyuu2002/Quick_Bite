@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Services;
@@ -8,7 +9,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 // Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AuthorizeFolder("/Admin");
+    options.Conventions.AllowAnonymousToPage("/Admin/Login");
+});
 builder.Services.AddSingleton<ConnectionTracker>();
 // TODO (Dev C): thêm implementation OrderService/CartService vào Services/ rồi bỏ comment 2 dòng dưới
 // builder.Services.AddScoped<OrderService>();
@@ -16,6 +21,11 @@ builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Admin/Login";
+    });
 
 var app = builder.Build();
 
@@ -32,6 +42,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseSession();
