@@ -1,10 +1,80 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Trang chủ";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="home-hero rounded-4 overflow-hidden mb-5">
+    <div class="row align-items-center g-0">
+        <div class="col-lg-7 p-4 p-md-5">
+            <span class="home-eyebrow">Nhanh chóng · Tiện lợi · Ngon miệng</span>
+            <h1 class="display-4 fw-bold mt-3 mb-3">Món ngon sẵn sàng,<br />đặt ngay cùng QuickBite</h1>
+            <p class="lead text-secondary mb-4">
+                Khám phá thực đơn đa dạng, chọn món yêu thích và quản lý giỏ hàng chỉ trong vài thao tác đơn giản.
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+                <a asp-page="/Menu/Index" class="btn btn-primary btn-lg px-4">Khám phá thực đơn</a>
+                <a asp-page="/Cart/Index" class="btn btn-outline-dark btn-lg px-4">Xem giỏ hàng</a>
+            </div>
+        </div>
+        <div class="col-lg-5 p-4 p-md-5">
+            <div class="home-hero-card rounded-4 p-4 text-center">
+                <div class="home-dish-icon" aria-hidden="true">🍜</div>
+                <h2 class="h4 mt-3">Bữa ăn ngon đang chờ bạn</h2>
+                <p class="text-secondary mb-0">Chọn món theo danh mục và theo dõi tổng tiền ngay trong giỏ hàng.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="text-center mb-5">
+    <p class="text-primary fw-semibold text-uppercase mb-2">Vì sao chọn QuickBite?</p>
+    <h2 class="display-6 fw-bold mb-4">Đặt món thật dễ dàng</h2>
+
+    <div class="row g-4 text-start">
+        <div class="col-md-4">
+            <article class="home-feature h-100 rounded-4 p-4">
+                <div class="home-feature-number">01</div>
+                <h3 class="h5 mt-4">Thực đơn rõ ràng</h3>
+                <p class="text-secondary mb-0">Các món ăn được sắp xếp theo danh mục để bạn nhanh chóng tìm được lựa chọn phù hợp.</p>
+            </article>
+        </div>
+        <div class="col-md-4">
+            <article class="home-feature h-100 rounded-4 p-4">
+                <div class="home-feature-number">02</div>
+                <h3 class="h5 mt-4">Giỏ hàng linh hoạt</h3>
+                <p class="text-secondary mb-0">Dễ dàng thêm món, tăng giảm số lượng hoặc xóa món trước khi quyết định đặt hàng.</p>
+            </article>
+        </div>
+        <div class="col-md-4">
+            <article class="home-feature h-100 rounded-4 p-4">
+                <div class="home-feature-number">03</div>
+                <h3 class="h5 mt-4">Chi phí minh bạch</h3>
+                <p class="text-secondary mb-0">Đơn giá, thành tiền và tổng giá trị giỏ hàng luôn được hiển thị rõ ràng.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="home-steps rounded-4 p-4 p-md-5 mb-5">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-5">
+            <p class="text-primary fw-semibold text-uppercase mb-2">Chỉ với 3 bước</p>
+            <h2 class="display-6 fw-bold mb-3">Từ thực đơn đến bữa ngon</h2>
+            <p class="text-secondary mb-0">QuickBite giúp trải nghiệm chọn món trở nên gọn gàng và thuận tiện hơn.</p>
+        </div>
+        <div class="col-lg-7">
+            <ol class="home-step-list mb-0">
+                <li><strong>Chọn danh mục</strong><span>Tìm món ăn phù hợp với sở thích của bạn.</span></li>
+                <li><strong>Thêm vào giỏ</strong><span>Điều chỉnh số lượng theo nhu cầu.</span></li>
+                <li><strong>Kiểm tra tổng tiền</strong><span>Xem lại giỏ hàng trước khi tiếp tục.</span></li>
+            </ol>
+        </div>
+    </div>
+</section>
+
+<section class="home-cta rounded-4 p-4 p-md-5 text-center text-white">
+    <h2 class="display-6 fw-bold">Bạn đã sẵn sàng chọn món?</h2>
+    <p class="lead mb-4">Bắt đầu khám phá thực đơn QuickBite ngay hôm nay.</p>
+    <a asp-page="/Menu/Index" class="btn btn-light btn-lg px-4">Xem thực đơn ngay</a>
+</section>
