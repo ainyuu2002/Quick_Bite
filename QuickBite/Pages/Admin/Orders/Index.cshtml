@@ -21,8 +21,8 @@
     string SortArrow(string column)
         => Model.SortBy != column ? "" : (Model.SortDir == "asc" ? " ▲" : " ▼");
 
-    string AriaSort(string column)
-        => Model.SortBy != column ? "none" : (Model.SortDir == "asc" ? "ascending" : "descending");
+    string? AriaSort(string column)
+        => Model.SortBy != column ? null : (Model.SortDir == "asc" ? "ascending" : "descending");
 }
 
 <div class="page-header">
@@ -60,6 +60,8 @@
 </form>
 
 <div class="data-surface">
+    @if (Model.Result.Items.Any())
+    {
     <table class="table">
         <thead>
             <tr>
@@ -91,12 +93,12 @@
             }
         </tbody>
     </table>
+    }
+    else
+    {
+        <p class="empty-state">Không có đơn nào khớp điều kiện.</p>
+    }
 </div>
-
-@if (!Model.Result.Items.Any())
-{
-    <p class="empty-state">Không có đơn nào khớp điều kiện.</p>
-}
 
 @if (Model.Result.TotalPages > 1)
 {

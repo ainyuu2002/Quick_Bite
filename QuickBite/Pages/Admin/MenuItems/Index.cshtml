@@ -36,9 +36,11 @@
 }
 
 <form method="get" class="toolbar">
-    <input type="text" name="search" value="@Model.Search" placeholder="Tìm theo tên món…" class="input" />
+    <label class="visually-hidden" for="menu-search">Tìm món ăn</label>
+    <input id="menu-search" type="text" name="search" value="@Model.Search" placeholder="Tìm theo tên món…" class="input" />
 
-    <select name="categoryId" class="input">
+    <label class="visually-hidden" for="menu-category">Danh mục</label>
+    <select id="menu-category" name="categoryId" class="input">
         <option value="">Tất cả danh mục</option>
         @foreach (var category in Model.Categories)
         {
@@ -46,7 +48,8 @@
         }
     </select>
 
-    <select name="available" class="input">
+    <label class="visually-hidden" for="menu-availability">Trạng thái còn hàng</label>
+    <select id="menu-availability" name="available" class="input">
         <option value="all" selected="@(Model.Available == "all")">Tất cả trạng thái</option>
         <option value="available" selected="@(Model.Available == "available")">Còn hàng</option>
         <option value="unavailable" selected="@(Model.Available == "unavailable")">Hết hàng</option>
@@ -56,6 +59,8 @@
 </form>
 
 <div class="data-surface">
+    @if (Model.Result.Items.Any())
+    {
     <table class="table">
         <thead>
             <tr>
@@ -63,7 +68,7 @@
                 <th>Danh mục</th>
                 <th class="num"><a href="@SortLink("price")">Giá@(SortArrow("price"))</a></th>
                 <th>Trạng thái</th>
-                <th></th>
+                <th><span class="visually-hidden">Thao tác</span></th>
             </tr>
         </thead>
         <tbody>
@@ -108,12 +113,12 @@
             }
         </tbody>
     </table>
+    }
+    else
+    {
+        <p class="empty-state">Không có món ăn nào khớp điều kiện</p>
+    }
 </div>
-
-@if (!Model.Result.Items.Any())
-{
-    <p class="empty-state">Không có món ăn nào khớp điều kiện</p>
-}
 
 @if (Model.Result.TotalPages > 1)
 {
