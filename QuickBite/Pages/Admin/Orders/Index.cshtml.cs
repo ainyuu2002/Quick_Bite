@@ -7,6 +7,8 @@ namespace QuickBite.Pages.Admin.Orders;
 
 public class IndexModel : PageModel
 {
+    private const int PageSize = 10;
+
     private readonly AppDbContext _context;
 
     public IndexModel(AppDbContext context)
@@ -14,17 +16,47 @@ public class IndexModel : PageModel
         _context = context;
     }
 
-    public IList<Order> Orders { get; set; } = default!;
+    public PagedResult<Order> Result { get; set; } = default!;
 
     public OrderStatus CurrentStatus { get; private set; }
 
-    public async Task OnGetAsync(OrderStatus status = OrderStatus.Pending)
+    public string? Search { get; private set; }
+
+    public string SortBy { get; private set; } = "date";
+
+    public string SortDir { get; private set; } = "desc";
+
+    public async Task OnGetAsync(
+        OrderStatus status = OrderStatus.Pending,
+        string? search = null,
+        string sortBy = "date",
+        string sortDir = "desc",
+        int page = 1)
     {
         CurrentStatus = status;
+        Search = search;
+        SortBy = sortBy == "total" ? "total" : "date";
+        SortDir = sortDir == "asc" ? "asc" : "desc";
 
-        Orders = await _context.Orders
-            .Where(o => o.Status == status)
-            .OrderByDescending(o => o.CreatedAt)
-            .ToListAsync();
+        var query = _context.Orders.Where(o => o.Status == status);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim();
+            query = query.Where(o =>
+                o.CustomerName.Contains(keyword) ||
+                o.Phone.Contains(keyword) ||
+                o.Id.ToString() == keyword);
+        }
+
+        query = (SortBy, SortDir) switch
+        {
+            ("total", "asc") => query.OrderBy(o => o.Total),
+            ("total", "desc") => query.OrderByDescending(o => o.Total),
+            ("date", "asc") => query.OrderBy(o => o.CreatedAt),
+            _ => query.OrderByDescending(o => o.CreatedAt)
+        };
+
+        Result = await PagedResult<Order>.CreateAsync(query, page, PageSize);
     }
 }

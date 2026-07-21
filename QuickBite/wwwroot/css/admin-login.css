@@ -1,0 +1,211 @@
+/* Hallmark · macrostructure: n/a (auth utility screen) · theme: custom (premium restaurant, warm burgundy) · tone: refined
+ * Tokens live in admin-tokens.css (linked before this file in _AdminAuthLayout). */
+
+html, body {
+  overflow-x: clip;
+}
+
+body.admin-auth {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-paper);
+  color: var(--color-ink-2);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.auth-shell {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-md);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--color-card);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl) var(--space-lg);
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px oklch(30% 0.02 40 / 0.06);
+}
+
+.auth-mark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.auth-mark__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.auth-mark__text {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ink);
+}
+
+.auth-mark__sub {
+  color: var(--color-ink-2);
+  font-weight: 500;
+}
+
+.auth-mark__sub::before {
+  content: " · ";
+}
+
+.auth-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: var(--color-ink);
+  margin: 0 0 var(--space-xs);
+}
+
+.auth-sub {
+  font-size: 0.875rem;
+  color: var(--color-ink-2);
+  margin: 0 0 var(--space-lg);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.auth-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.auth-input {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--color-ink);
+  background: var(--color-card);
+  border: 1px solid var(--color-rule-2);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 0.75rem;
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease-out);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.auth-input:hover {
+  border-color: var(--color-ink-2);
+}
+
+.auth-input:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.auth-input:disabled {
+  background: var(--color-paper);
+  color: var(--color-ink-2);
+  cursor: not-allowed;
+}
+
+.auth-input.input-validation-error {
+  border-color: var(--color-danger);
+}
+
+.auth-field-error {
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+}
+
+.auth-field-error:empty {
+  display: none;
+}
+
+.auth-error ul {
+  list-style: none;
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  font-size: 0.875rem;
+}
+
+.auth-error ul:empty {
+  display: none;
+}
+
+.auth-btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-accent-ink);
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
+}
+
+.auth-btn:hover {
+  background: var(--color-accent-hover);
+}
+
+.auth-btn:active {
+  transform: translateY(1px);
+}
+
+.auth-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.auth-btn:disabled,
+.auth-btn.is-loading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.auth-footnote {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-2);
+  text-align: center;
+  margin: 0;
+}
+
+@media (max-width: 375px) {
+  .auth-card {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .auth-btn {
+    font-size: clamp(0.85rem, 3vw, 0.9375rem);
+  }
+}
