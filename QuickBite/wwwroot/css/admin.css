@@ -1,5 +1,5 @@
 /* Hallmark · pre-emit critique: P4 H4 E4 S5 R5 V4 */
-/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: tokens.css · designed-as-app
  * theme: custom-soft-indigo · tone: soft · anchor hue: indigo · contrast: pass (40–41)
  * nav: N3 side rail · footer: none · slop: pass (42–45)
  * honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · icons: pass (30)
@@ -68,7 +68,7 @@ body.admin-app { margin: 0; min-height: 100vh; overflow-x: clip; background: var
 .textarea { min-height: 112px; resize: vertical; }
 .input:hover, .select:hover, .textarea:hover { border-color: var(--color-ink-3); }
 .input:active, .select:active, .textarea:active { border-color: var(--color-accent); }
-.input:disabled, .select:disabled, .textarea:disabled { color: var(--color-ink-3); background: var(--color-paper-2); cursor: not-allowed; }
+.input:disabled, .select:disabled, .textarea:disabled { color: var(--color-ink-3); background: var(--color-paper-2); opacity: 0.55; cursor: not-allowed; }
 .input-validation-error { border-color: var(--color-danger); }
 .field-error { min-height: 1lh; color: var(--color-danger); font-size: var(--text-xs); }
 .field-error:empty { visibility: hidden; }
@@ -79,6 +79,7 @@ body.admin-app { margin: 0; min-height: 100vh; overflow-x: clip; background: var
 .form-error:empty, .form-error ul:empty { display: none; }
 .form-error ul { margin: 0; padding-left: var(--space-lg); }
 .table th.num, .table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.table time { font-variant-numeric: tabular-nums; }
 .table th a { color: inherit; white-space: nowrap; text-decoration: none; }
 .table th a:hover { color: var(--color-accent-strong); }
 .table th a:active { color: var(--color-ink); }

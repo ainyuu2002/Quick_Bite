@@ -20,6 +20,9 @@
 
     string SortArrow(string column)
         => Model.SortBy != column ? "" : (Model.SortDir == "asc" ? " ▲" : " ▼");
+
+    string AriaSort(string column)
+        => Model.SortBy != column ? "none" : (Model.SortDir == "asc" ? "ascending" : "descending");
 }
 
 <div class="page-header">
@@ -63,8 +66,12 @@
                 <th>Mã đơn</th>
                 <th>Khách hàng</th>
                 <th>SĐT</th>
-                <th class="num"><a href="@SortLink("total")">Tổng tiền@(SortArrow("total"))</a></th>
-                <th><a href="@SortLink("date")">Thời gian đặt@(SortArrow("date"))</a></th>
+                <th class="num" aria-sort="@AriaSort("total")">
+                    <a href="@SortLink("total")">Tổng tiền<span aria-hidden="true">@SortArrow("total")</span></a>
+                </th>
+                <th aria-sort="@AriaSort("date")">
+                    <a href="@SortLink("date")">Thời gian đặt<span aria-hidden="true">@SortArrow("date")</span></a>
+                </th>
             </tr>
         </thead>
         <tbody>
