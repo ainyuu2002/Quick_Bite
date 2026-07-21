@@ -15,9 +15,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AllowAnonymousToPage("/Admin/Login");
 });
 builder.Services.AddSingleton<ConnectionTracker>();
-// TODO (Dev C): thêm implementation OrderService/CartService vào Services/ rồi bỏ comment 2 dòng dưới
-// builder.Services.AddScoped<OrderService>();
-// builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<OrderService>();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

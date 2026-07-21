@@ -27,5 +27,7 @@ public class Order
     [Column(TypeName = "decimal(18,0)")]
     public decimal Total { get; set; }
 
+    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
+
     public List<OrderItem> Items { get; set; } = new();
 }

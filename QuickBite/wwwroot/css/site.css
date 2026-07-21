@@ -42,6 +42,147 @@ body {
   text-align: center;
 }
 
+.checkout-summary {
+  position: sticky;
+  top: 1rem;
+}
+
+.payment-method-options {
+  display: grid;
+  gap: .75rem;
+}
+
+.payment-method-option {
+  align-items: flex-start;
+  border: 1px solid #dee2e6;
+  border-radius: .75rem;
+  cursor: pointer;
+  display: flex;
+  gap: .75rem;
+  padding: 1rem;
+}
+
+.payment-method-option:has(input:checked) {
+  background: #f0f6ff;
+  border-color: #0d6efd;
+}
+
+.payment-method-option input {
+  margin-top: .25rem;
+}
+
+.payment-method-option span {
+  display: grid;
+}
+
+.payment-method-option small {
+  color: #6c757d;
+}
+
+.track-search-card {
+  max-width: 42rem;
+}
+
+.order-history-item {
+  border-bottom: 2px solid #e9ecef;
+  display: block;
+  margin-bottom: 3rem;
+  padding-bottom: 3rem;
+}
+
+.order-history-item:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.order-progress {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.order-progress-step {
+  align-items: center;
+  color: #6c757d;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  position: relative;
+  text-align: center;
+}
+
+.order-progress-step::before {
+  background: #dee2e6;
+  content: "";
+  height: .25rem;
+  left: calc(-50% + 1.25rem);
+  position: absolute;
+  right: calc(50% + 1.25rem);
+  top: 1rem;
+}
+
+.order-progress-step:first-child::before {
+  display: none;
+}
+
+.order-progress-marker {
+  align-items: center;
+  background: #e9ecef;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #ced4da;
+  display: flex;
+  font-weight: 700;
+  height: 2.25rem;
+  justify-content: center;
+  position: relative;
+  width: 2.25rem;
+  z-index: 1;
+}
+
+.order-progress-step.is-complete::before,
+.order-progress-step.is-current::before {
+  background: #0d6efd;
+}
+
+.order-progress-step.is-complete,
+.order-progress-step.is-current {
+  color: #0d6efd;
+}
+
+.order-progress-step.is-complete .order-progress-marker,
+.order-progress-step.is-current .order-progress-marker {
+  background: #0d6efd;
+  box-shadow: 0 0 0 1px #0d6efd;
+  color: #fff;
+}
+
+@media (max-width: 767.98px) {
+  .checkout-summary {
+    position: static;
+  }
+
+  .order-progress {
+    grid-template-columns: 1fr;
+  }
+
+  .order-progress-step {
+    align-items: center;
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .order-progress-step::before {
+    bottom: calc(50% + 1.1rem);
+    height: auto;
+    left: 1rem;
+    right: auto;
+    top: calc(-50% + 1.1rem);
+    width: .25rem;
+  }
+}
+
 .home-hero {
   background: linear-gradient(135deg, #fff7ed 0%, #ffffff 55%, #eff6ff 100%);
   border: 1px solid #f1f3f5;
