@@ -10,6 +10,7 @@
     const cancelledStatus = 5;
     const historyToggle = document.querySelector("[data-toggle-order-history]");
     let stopped = false;
+    let usePolling = false; // chỉ bật khi SignalR không khả dụng (fallback)
 
     if (historyToggle) {
         historyToggle.addEventListener("click", function () {
@@ -115,7 +116,7 @@
             console.error("QuickBite: không thể cập nhật trạng thái đơn hàng.", error);
         }
 
-        if (!stopped) {
+        if (!stopped && usePolling) {
             window.setTimeout(refreshStatus, 5000);
         }
     }
@@ -128,7 +129,51 @@
         );
     });
     updateStoppedState();
-    if (!stopped) {
-        window.setTimeout(refreshStatus, 5000);
+
+    // ==== Real-time (Dev D — FR-09): SignalR thay polling; polling chỉ còn là fallback ====
+
+    function startPollingFallback() {
+        usePolling = true;
+        if (!stopped) {
+            window.setTimeout(refreshStatus, 5000);
+        }
     }
+
+    if (typeof signalR === "undefined") {
+        console.warn("QuickBite: thiếu signalr.min.js — tạm dùng polling 5s.");
+        startPollingFallback();
+        return;
+    }
+
+    const conn = new signalR.HubConnectionBuilder()
+        .withUrl("/orderHub")
+        .withAutomaticReconnect()       // FR-10
+        .build();
+
+    conn.on("OrderStatusChanged", function (p) {
+        const orderElement = root.querySelector(
+            `[data-order-track][data-order-id="${Number(p.orderId)}"]`
+        );
+        if (orderElement) {
+            updateProgress(orderElement, p.status, p.statusText);
+            updateStoppedState();
+        }
+    });
+
+    // FR-10: event bắn ra lúc rớt mạng là mất vĩnh viễn → sau reconnect chủ động đồng bộ một lượt
+    conn.onreconnected(function () {
+        refreshStatus();
+    });
+
+    conn.start()
+        .then(function () {
+            const watches = Array.from(root.querySelectorAll("[data-order-track]"))
+                .map(function (el) { return conn.invoke("WatchOrder", Number(el.dataset.orderId)); });
+            return Promise.all(watches);
+        })
+        .then(function () { console.log("SignalR: đang theo dõi đơn realtime"); })
+        .catch(function (err) {
+            console.error("SignalR:", err);
+            startPollingFallback();     // hub chết → quay về polling, trang không bao giờ "đứng hình"
+        });
 }());

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
+using QuickBite.Hubs;
 using QuickBite.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,6 +50,8 @@ app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHub<OrderHub>("/orderHub");
 
 app.MapRazorPages();
 
