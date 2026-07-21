@@ -2,24 +2,51 @@
 @model QuickBite.Pages.Admin.LoginModel
 @{
     ViewData["Title"] = "Đăng nhập Admin";
+    Layout = "_AdminAuthLayout";
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-4">
-        <h2 class="mb-4 text-center">Đăng nhập Admin</h2>
-        <form method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="mb-3">
-                <label asp-for="Username" class="form-label">Tên đăng nhập</label>
-                <input asp-for="Username" class="form-control"/>
-                <span asp-validation-for="Username" class="text-danger"></span>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Password" class="form-label">Mật khẩu</label>
-                <input asp-for="Password" class="form-control" type="password" />
-                <span asp-validation-for="Password" class="text-danger"></span>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
-        </form>
+<div class="auth-card">
+    <div class="auth-mark">
+        <span class="auth-mark__dot" aria-hidden="true"></span>
+        <span class="auth-mark__text">QUICKBITE<span class="auth-mark__sub">ADMIN</span></span>
     </div>
+
+    <h1 class="auth-title">Đăng nhập</h1>
+    <p class="auth-sub">Dành cho quản trị viên và nhân viên quán.</p>
+
+    <form method="post" class="auth-form" id="loginForm">
+        <div asp-validation-summary="ModelOnly" class="auth-error"></div>
+
+        <div class="auth-field">
+            <label asp-for="Username" class="auth-label">Tên đăng nhập</label>
+            <input asp-for="Username" class="auth-input" autocomplete="username" autofocus />
+            <span asp-validation-for="Username" class="auth-field-error"></span>
+        </div>
+
+        <div class="auth-field">
+            <label asp-for="Password" class="auth-label">Mật khẩu</label>
+            <input asp-for="Password" type="password" class="auth-input" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="auth-field-error"></span>
+        </div>
+
+        <button type="submit" class="auth-btn" id="loginBtn">
+            <span class="auth-btn__label">Đăng nhập</span>
+        </button>
+    </form>
 </div>
+
+<p class="auth-footnote">QuickBite Admin · Nội bộ quán</p>
+
+@section Scripts {
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function () {
+            var btn = document.getElementById('loginBtn');
+            var label = btn.querySelector('.auth-btn__label');
+            btn.disabled = true;
+            btn.classList.add('is-loading');
+            label.textContent = 'Đang đăng nhập…';
+            document.getElementById('loginForm')
+                .querySelectorAll('input').forEach(function (el) { el.disabled = true; });
+        });
+    </script>
+}
