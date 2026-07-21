@@ -5,69 +5,78 @@
     ViewData["Title"] = "Quản lý món ăn";
 }
 
-<h1>Quản lý món ăn</h1>
+<div class="page-header">
+    <h1 class="page-title">Quản lý món ăn</h1>
+    <a asp-page="Create" class="btn btn--primary">+ Thêm món mới</a>
+</div>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <div class="alert alert--danger">@Model.ErrorMessage</div>
 }
 
-<p>
-    <a asp-page="Create" class="btn btn-primary btn-sm">+ Thêm món mới</a>
-</p>
-<table class="table table-striped align-middle">
-    <thead>
-        <tr>
-            <th>Ảnh</th>
-            <th>Tên món</th>
-            <th>Danh mục</th>
-            <th>Giá</th>
-            <th>Còn hàng</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model.MenuItem)
-        {
+<div class="table-wrap">
+    <table class="table">
+        <thead>
             <tr>
-                <td>
-                    @if (!string.IsNullOrEmpty(item.ImageUrl))
-                    {
-                        <img src="@item.ImageUrl" alt="@item.Name" style="width:40px;height:40px;object-fit:cover;" class="rounded" />
-                    }
-                    else
-                    {
-                        <span class="text-muted">—</span>
-                    }
-                </td>
-                <td>@item.Name</td>
-                <td>@item.Category?.Name</td>
-                <td>@item.Price.ToString("N0") đ</td>
-                <td>
-                    @if (item.IsAvailable)
-                    {
-                        <span class="badge bg-success">Còn hàng</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">Hết hàng</span>
-                    }
-                </td>
-                <td>
-                    <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">Sửa</a>
-                    <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm">Xóa</a>
-                    <form method="post" asp-page-handler="ToggleAvailable" asp-route-id="@item.Id" class="d-inline">
-                        @if (item.IsAvailable)
+                <th>Ảnh</th>
+                <th>Tên món</th>
+                <th>Danh mục</th>
+                <th class="num">Giá</th>
+                <th>Trạng thái</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.MenuItem)
+            {
+                <tr>
+                    <td>
+                        @if (!string.IsNullOrEmpty(item.ImageUrl))
                         {
-                            <button type="submit" class="btn btn-outline-secondary btn-sm">Ẩn (hết hàng)</button>
+                            <img src="@item.ImageUrl" alt="@item.Name" class="table-thumb" />
                         }
                         else
                         {
-                            <button type="submit" class="btn btn-outline-success btn-sm">Hiện (còn hàng)</button>
+                            <span class="table-thumb-empty" aria-hidden="true">—</span>
                         }
-                    </form>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                    </td>
+                    <td>@item.Name</td>
+                    <td>@item.Category?.Name</td>
+                    <td class="num">@item.Price.ToString("N0") đ</td>
+                    <td>
+                        @if (item.IsAvailable)
+                        {
+                            <span class="badge badge--success">Còn hàng</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge--muted">Hết hàng</span>
+                        }
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn--outline btn--sm">Sửa</a>
+                            <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn--danger-outline btn--sm">Xóa</a>
+                            <form method="post" asp-page-handler="ToggleAvailable" asp-route-id="@item.Id">
+                                @if (item.IsAvailable)
+                                {
+                                    <button type="submit" class="btn btn--outline btn--sm">Ẩn (hết hàng)</button>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn--outline btn--sm">Hiện (còn hàng)</button>
+                                }
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (!Model.MenuItem.Any())
+{
+    <p class="empty-state">Chưa có món ăn nào.</p>
+}

@@ -5,26 +5,36 @@
     ViewData["Title"] = "Xóa món ăn";
 }
 
-<h1>Xóa món ăn</h1>
-
-<div class="alert alert-warning">
-    Bạn có chắc muốn xóa món này? Nếu món đã có trong đơn hàng, hệ thống sẽ từ chối xóa
-    và bạn nên dùng nút "Ẩn" ở trang danh sách thay vì xóa.
+<div class="page-header">
+    <h1 class="page-title">Xóa món ăn</h1>
 </div>
 
-<dl class="row">
-    <dt class="col-sm-2">Tên món</dt>
-    <dd class="col-sm-10">@Model.MenuItem.Name</dd>
+<div class="card card--narrow">
+    <div class="alert alert--warning">
+        Bạn có chắc muốn xóa món này? Nếu món đã có trong đơn hàng, hệ thống sẽ từ chối xóa
+        và bạn nên dùng nút "Ẩn" ở trang danh sách thay vì xóa.
+    </div>
 
-    <dt class="col-sm-2">Danh mục</dt>
-    <dd class="col-sm-10">@Model.MenuItem.Category?.Name</dd>
+    <div class="kv">
+        <div class="kv-row">
+            <span class="kv-label">Tên món</span>
+            <span class="kv-value">@Model.MenuItem.Name</span>
+        </div>
+        <div class="kv-row">
+            <span class="kv-label">Danh mục</span>
+            <span class="kv-value">@Model.MenuItem.Category?.Name</span>
+        </div>
+        <div class="kv-row">
+            <span class="kv-label">Giá</span>
+            <span class="kv-value">@Model.MenuItem.Price.ToString("N0") đ</span>
+        </div>
+    </div>
 
-    <dt class="col-sm-2">Giá</dt>
-    <dd class="col-sm-10">@Model.MenuItem.Price.ToString("N0") đ</dd>
-</dl>
-
-<form method="post">
-    <input type="hidden" asp-for="MenuItem.Id" />
-    <input type="submit" value="Xác nhận xóa" class="btn btn-danger" />
-    <a asp-page="./Index" class="btn btn-secondary">Hủy</a>
-</form>
+    <form method="post">
+        <input type="hidden" asp-for="MenuItem.Id" />
+        <div class="form-actions">
+            <button type="submit" class="btn btn--danger">Xác nhận xóa</button>
+            <a asp-page="./Index" class="btn btn--outline">Hủy</a>
+        </div>
+    </form>
+</div>

@@ -1,38 +1,46 @@
-﻿<!DOCTYPE html>
+@{
+    var path = Context.Request.Path;
+    bool isMenuItems = path.StartsWithSegments("/Admin/MenuItems");
+    bool isOrders = path.StartsWithSegments("/Admin/Orders");
+}
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - QuickBite Admin</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/QuickBite.styles.css" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/admin-tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
 </head>
-<body>
-    <div class="d-flex">
-        <nav class="bg-dark text-white p-3" style="width:220px; min-height:100vh;">
-            <h5 class="mb-4">QuickBite Admin</h5>
-            <ul class="nav nav-pills flex-column">
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-white" asp-page="/Admin/MenuItems/Index">Món ăn</a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-white" asp-page="/Admin/Orders/Index">Đơn hàng</a>
-                </li>
-            </ul>
-            <form method="post" asp-page="/Admin/Login" asp-page-handler="Logout" class="mt-4">
-                <button type="submit" class="btn btn-outline-light btn-sm w-100">Đăng xuất</button>
-            </form>
-        </nav>
-        <main class="flex-grow-1 p-4">
+<body class="admin-app">
+    <div class="admin-shell">
+        <aside class="admin-rail">
+            <div class="admin-rail__brand">
+                <span class="admin-rail__brand-dot" aria-hidden="true"></span>
+                <span class="admin-rail__brand-text">QUICKBITE<span class="admin-rail__brand-sub">ADMIN</span></span>
+            </div>
+
+            <nav class="admin-rail__nav" aria-label="Điều hướng quản trị">
+                <a class="admin-rail__link" asp-page="/Admin/MenuItems/Index" aria-current="@(isMenuItems ? "page" : null)">Món ăn</a>
+                <a class="admin-rail__link" asp-page="/Admin/Orders/Index" aria-current="@(isOrders ? "page" : null)">Đơn hàng</a>
+            </nav>
+
+            <div class="admin-rail__foot">
+                <form method="post" asp-page="/Admin/Login" asp-page-handler="Logout">
+                    <button type="submit" class="btn btn--ghost-dark btn--sm">Đăng xuất</button>
+                </form>
+            </div>
+        </aside>
+
+        <main class="admin-main">
             @RenderBody()
         </main>
     </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

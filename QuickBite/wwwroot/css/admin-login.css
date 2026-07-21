@@ -1,35 +1,5 @@
-/* Hallmark · macrostructure: n/a (auth utility screen) · theme: cobalt-DNA · tone: utilitarian */
-
-:root {
-  --color-paper: oklch(98.5% 0.004 250);
-  --color-card: oklch(100% 0 0);
-  --color-ink: oklch(24% 0.02 258);
-  --color-ink-2: oklch(40% 0.02 257);
-  --color-rule: oklch(90% 0.01 258);
-  --color-rule-2: oklch(82% 0.014 258);
-  --color-accent: oklch(58% 0.20 256);
-  --color-accent-hover: oklch(52% 0.20 256);
-  --color-accent-ink: oklch(99% 0 0);
-  --color-danger: oklch(55% 0.19 25);
-  --color-danger-bg: oklch(96% 0.03 25);
-  --color-focus: oklch(58% 0.20 256);
-
-  --font-display: "Space Grotesk", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-
-  --space-xs: 0.5rem;
-  --space-sm: 0.75rem;
-  --space-md: 1.25rem;
-  --space-lg: 2rem;
-  --space-xl: 3rem;
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-fast: 150ms;
-}
+/* Hallmark · macrostructure: n/a (auth utility screen) · theme: cobalt-DNA · tone: utilitarian
+ * Tokens live in admin-tokens.css (linked before this file in _AdminAuthLayout). */
 
 html, body {
   overflow-x: clip;

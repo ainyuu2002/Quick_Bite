@@ -6,47 +6,48 @@
     ViewData["Title"] = "Quản lý đơn hàng";
 }
 
-<h1>Quản lý đơn hàng</h1>
+<div class="page-header">
+    <h1 class="page-title">Quản lý đơn hàng</h1>
+</div>
 
-<ul class="nav nav-tabs mb-3">
+<nav class="tabs" aria-label="Lọc theo trạng thái">
     @foreach (var status in Enum.GetValues<OrderStatus>())
     {
-        <li class="nav-item">
-            <a class="nav-link @(status == Model.CurrentStatus ? "active" : "")"
-               asp-route-status="@status">
-                @status.ToDisplayText()
-            </a>
-        </li>
+        <a class="tab" asp-route-status="@status" aria-current="@(status == Model.CurrentStatus ? "page" : null)">
+            @status.ToDisplayText()
+        </a>
     }
-</ul>
+</nav>
 
-<table class="table table-striped align-middle">
-    <thead>
-        <tr>
-            <th>Mã đơn</th>
-            <th>Khách hàng</th>
-            <th>SĐT</th>
-            <th>Tổng tiền</th>
-            <th>Thời gian đặt</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var order in Model.Orders)
-        {
+<div class="table-wrap">
+    <table class="table">
+        <thead>
             <tr>
-                <td>#@order.Id</td>
-                <td>@order.CustomerName</td>
-                <td>@order.Phone</td>
-                <td>@order.Total.ToString("N0") đ</td>
-                <td>@order.CreatedAt.ToString("HH:mm dd/MM/yyyy")</td>
-                <td></td>
+                <th>Mã đơn</th>
+                <th>Khách hàng</th>
+                <th>SĐT</th>
+                <th class="num">Tổng tiền</th>
+                <th>Thời gian đặt</th>
+                <th></th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var order in Model.Orders)
+            {
+                <tr>
+                    <td>#@order.Id</td>
+                    <td>@order.CustomerName</td>
+                    <td>@order.Phone</td>
+                    <td class="num">@order.Total.ToString("N0") đ</td>
+                    <td>@order.CreatedAt.ToString("HH:mm dd/MM/yyyy")</td>
+                    <td></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
 
 @if (!Model.Orders.Any())
 {
-    <p class="text-muted">Không có đơn nào ở trạng thái này.</p>
+    <p class="empty-state">Không có đơn nào ở trạng thái này.</p>
 }
