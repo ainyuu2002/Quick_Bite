@@ -47,11 +47,8 @@ public static class OrderStatusExtensions
         => current == OrderStatus.Pending;
 
     /// <summary>
-    /// Admin được hủy mọi đơn chưa kết thúc.
+    /// Admin chỉ được hủy đơn trước khi nhận đơn.
     /// </summary>
     public static bool CanBeCancelledByStaff(this OrderStatus current)
-        => current is OrderStatus.Pending
-            or OrderStatus.Accepted
-            or OrderStatus.Preparing
-            or OrderStatus.Ready;
+        => current == OrderStatus.Pending;
 }

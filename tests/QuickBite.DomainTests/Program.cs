@@ -18,24 +18,22 @@ Assert(
     !OrderStatus.Accepted.CanTransitionTo(OrderStatus.Pending),
     "Không được chuyển lùi trạng thái.");
 
+Assert(
+    OrderStatus.Pending.CanBeCancelledByStaff(),
+    "Admin phải được hủy đơn Pending.");
+
 foreach (var status in new[]
 {
-    OrderStatus.Pending,
     OrderStatus.Accepted,
     OrderStatus.Preparing,
-    OrderStatus.Ready
+    OrderStatus.Ready,
+    OrderStatus.Completed,
+    OrderStatus.Cancelled
 })
 {
     Assert(
-        status.CanBeCancelledByStaff(),
-        $"Admin phải hủy được đơn ở trạng thái {status}.");
+        !status.CanBeCancelledByStaff(),
+        $"Admin không được hủy đơn ở trạng thái {status}.");
 }
-
-Assert(
-    !OrderStatus.Completed.CanBeCancelledByStaff(),
-    "Admin không được hủy đơn Completed.");
-Assert(
-    !OrderStatus.Cancelled.CanBeCancelledByStaff(),
-    "Admin không được hủy lại đơn Cancelled.");
 
 Console.WriteLine("Admin order domain tests passed.");
