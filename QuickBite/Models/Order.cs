@@ -16,6 +16,10 @@ public class Order
     [StringLength(11)]
     public string Phone { get; set; } = null!;
 
+    [Required(ErrorMessage = "Vui lòng nhập địa chỉ")]
+    [StringLength(500)]
+    public string Address { get; set; } = null!;
+
     [StringLength(500)]
     public string? Note { get; set; }
 

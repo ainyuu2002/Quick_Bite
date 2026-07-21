@@ -12,6 +12,7 @@ public sealed record CreateOrderItem(int MenuItemId, int Quantity);
 public sealed record CreateOrderRequest(
     string CustomerName,
     string Phone,
+    string Address,
     string? Note,
     PaymentMethod PaymentMethod,
     IReadOnlyCollection<CreateOrderItem> Items);
@@ -92,6 +93,7 @@ public sealed class OrderService
         {
             CustomerName = request.CustomerName?.Trim() ?? string.Empty,
             Phone = request.Phone?.Trim() ?? string.Empty,
+            Address = request.Address?.Trim() ?? string.Empty,
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
             PaymentMethod = request.PaymentMethod,
             Status = OrderStatus.Pending,

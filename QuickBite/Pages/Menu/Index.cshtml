@@ -13,6 +13,55 @@
     <a asp-page="/Cart/Index" class="btn btn-outline-primary">Xem giỏ hàng</a>
 </div>
 
+<div class="menu-filter-panel rounded-4 p-3 p-md-4 mb-4">
+    <form method="get" class="row g-2 mb-4" role="search">
+        @if (Model.CategoryId.HasValue)
+        {
+            <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+        }
+
+        <div class="col-sm">
+            <label for="menu-search" class="visually-hidden">Tìm món ăn</label>
+            <input id="menu-search"
+                   type="search"
+                   name="searchTerm"
+                   value="@Model.SearchTerm"
+                   class="form-control form-control-lg"
+                   maxlength="150"
+                   placeholder="Tìm theo tên hoặc mô tả món ăn..." />
+        </div>
+        <div class="col-sm-auto d-grid">
+            <button type="submit" class="btn btn-primary btn-lg px-4">Tìm kiếm</button>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+        {
+            <div class="col-sm-auto d-grid">
+                <a asp-page="/Menu/Index"
+                   asp-route-categoryId="@Model.CategoryId"
+                   class="btn btn-outline-secondary btn-lg">Xóa tìm kiếm</a>
+            </div>
+        }
+    </form>
+
+    <nav class="menu-category-list" aria-label="Danh mục món ăn">
+        <a asp-page="/Menu/Index"
+           class="btn @(Model.CategoryId is null ? "btn-primary" : "btn-outline-primary")"
+           aria-current="@(Model.CategoryId is null ? "page" : null)">
+            Tất cả
+        </a>
+
+        @foreach (var category in Model.Categories)
+        {
+            <a asp-page="/Menu/Index"
+               asp-route-categoryId="@category.Id"
+               class="btn @(Model.CategoryId == category.Id ? "btn-primary" : "btn-outline-primary")"
+               aria-current="@(Model.CategoryId == category.Id ? "page" : null)">
+                @category.Name
+            </a>
+        }
+    </nav>
+</div>
+
 @if (!string.IsNullOrEmpty(Model.Message))
 {
     <div class="alert alert-success" role="alert">@Model.Message</div>
@@ -23,70 +72,109 @@
     <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
 }
 
-@if (Model.Categories.Count == 0)
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h2 class="h4 mb-0">@Model.SelectedCategoryName</h2>
+    @if (Model.TotalItems > 0)
+    {
+        <span class="text-muted">
+            Hiển thị @Model.FirstItemNumber–@Model.LastItemNumber trong @Model.TotalItems món
+        </span>
+    }
+</div>
+
+@if (Model.MenuItems.Count == 0)
 {
-    <div class="alert alert-info">Hiện chưa có danh mục món ăn.</div>
+    <div class="alert alert-info">
+        Không tìm thấy món ăn phù hợp. Hãy thử category hoặc từ khóa khác.
+    </div>
 }
-
-@foreach (var category in Model.Categories)
+else
 {
-    <section class="mb-5">
-        <h2 class="h3 mb-1">@category.Name</h2>
-        @if (!string.IsNullOrWhiteSpace(category.Description))
+    <div class="row g-4">
+        @foreach (var item in Model.MenuItems)
         {
-            <p class="text-muted">@category.Description</p>
-        }
+            <div class="col-sm-6 col-lg-4">
+                <article class="card h-100 shadow-sm">
+                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                    {
+                        <img src="@item.ImageUrl" class="card-img-top menu-item-image" alt="@item.Name" />
+                    }
+                    else
+                    {
+                        <div class="menu-item-placeholder d-flex align-items-center justify-content-center text-muted">
+                            Chưa có hình ảnh
+                        </div>
+                    }
 
-        @if (category.MenuItems.Count == 0)
-        {
-            <p class="text-muted">Danh mục này chưa có món ăn.</p>
-        }
-        else
-        {
-            <div class="row g-4 mt-1">
-                @foreach (var item in category.MenuItems)
-                {
-                    <div class="col-sm-6 col-lg-4">
-                        <article class="card h-100 shadow-sm">
-                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                            {
-                                <img src="@item.ImageUrl" class="card-img-top menu-item-image" alt="@item.Name" />
-                            }
-                            else
-                            {
-                                <div class="menu-item-placeholder d-flex align-items-center justify-content-center text-muted">
-                                    Chưa có hình ảnh
-                                </div>
-                            }
-
-                            <div class="card-body d-flex flex-column">
-                                <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <h3 class="h5 card-title">@item.Name</h3>
-                                    @if (!item.IsAvailable)
-                                    {
-                                        <span class="badge bg-secondary">Hết hàng</span>
-                                    }
-                                </div>
-
-                                <p class="card-text text-muted flex-grow-1">@item.Description</p>
-                                <p class="fs-5 fw-bold text-primary">@item.Price.ToString("N0") đ</p>
-
-                                @if (item.IsAvailable)
-                                {
-                                    <form method="post" asp-page-handler="AddToCart">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn btn-primary w-100">Thêm vào giỏ</button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <button type="button" class="btn btn-secondary w-100" disabled>Không thể đặt món</button>
-                                }
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <span class="badge bg-light text-primary border mb-2">@item.Category?.Name</span>
+                                <h3 class="h5 card-title">@item.Name</h3>
                             </div>
-                        </article>
+                            @if (!item.IsAvailable)
+                            {
+                                <span class="badge bg-secondary">Hết hàng</span>
+                            }
+                        </div>
+
+                        <p class="card-text text-muted flex-grow-1">@item.Description</p>
+                        <p class="fs-5 fw-bold text-primary">@item.Price.ToString("N0") đ</p>
+
+                        @if (item.IsAvailable)
+                        {
+                            <form method="post" asp-page-handler="AddToCart">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                                <input type="hidden" name="searchTerm" value="@Model.SearchTerm" />
+                                <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
+                                <button type="submit" class="btn btn-primary w-100">Thêm vào giỏ</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-secondary w-100" disabled>Không thể đặt món</button>
+                        }
                     </div>
-                }
+                </article>
             </div>
         }
-    </section>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="mt-5" aria-label="Phân trang thực đơn">
+            <ul class="pagination justify-content-center flex-wrap">
+                <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                    <a class="page-link"
+                       asp-page="/Menu/Index"
+                       asp-route-categoryId="@Model.CategoryId"
+                       asp-route-searchTerm="@Model.SearchTerm"
+                       asp-route-pageNumber="@(Model.PageNumber - 1)"
+                       aria-label="Trang trước">Trước</a>
+                </li>
+
+                @for (var pageIndex = 1; pageIndex <= Model.TotalPages; pageIndex++)
+                {
+                    <li class="page-item @(pageIndex == Model.PageNumber ? "active" : "")">
+                        <a class="page-link"
+                           asp-page="/Menu/Index"
+                           asp-route-categoryId="@Model.CategoryId"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-pageNumber="@pageIndex"
+                           aria-current="@(pageIndex == Model.PageNumber ? "page" : null)">@pageIndex</a>
+                    </li>
+                }
+
+                <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link"
+                       asp-page="/Menu/Index"
+                       asp-route-categoryId="@Model.CategoryId"
+                       asp-route-searchTerm="@Model.SearchTerm"
+                       asp-route-pageNumber="@(Model.PageNumber + 1)"
+                       aria-label="Trang sau">Sau</a>
+                </li>
+            </ul>
+        </nav>
+    }
 }
