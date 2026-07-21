@@ -11,32 +11,41 @@
     <title>@ViewData["Title"] - QuickBite Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/admin-tokens.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
 </head>
 <body class="admin-app">
     <div class="admin-shell">
         <aside class="admin-rail">
-            <div class="admin-rail__brand">
-                <span class="admin-rail__brand-dot" aria-hidden="true"></span>
-                <span class="admin-rail__brand-text">QUICKBITE<span class="admin-rail__brand-sub">ADMIN</span></span>
-            </div>
+            <a class="admin-rail__brand" asp-page="/Admin/Orders/Index">
+                <span class="admin-rail__mark" aria-hidden="true">QB</span>
+                <span>
+                    <span class="admin-rail__name">QuickBite</span>
+                    <span class="admin-rail__meta">Quản trị quán</span>
+                </span>
+            </a>
 
             <nav class="admin-rail__nav" aria-label="Điều hướng quản trị">
-                <a class="admin-rail__link" asp-page="/Admin/MenuItems/Index" aria-current="@(isMenuItems ? "page" : null)">Món ăn</a>
-                <a class="admin-rail__link" asp-page="/Admin/Orders/Index" aria-current="@(isOrders ? "page" : null)">Đơn hàng</a>
+                <a class="admin-rail__link" asp-page="/Admin/Orders/Index" aria-current="@(isOrders ? "page" : null)">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 2.5h10v11H3zM5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
+                    Đơn hàng
+                </a>
+                <a class="admin-rail__link" asp-page="/Admin/MenuItems/Index" aria-current="@(isMenuItems ? "page" : null)">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 11h11M4 11a4 4 0 0 1 8 0M8 4.5V6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    Món ăn
+                </a>
             </nav>
 
             <div class="admin-rail__foot">
                 <form method="post" asp-page="/Admin/Login" asp-page-handler="Logout">
-                    <button type="submit" class="btn btn--ghost-dark btn--sm">Đăng xuất</button>
+                    <button type="submit" class="btn btn--rail">Đăng xuất</button>
                 </form>
             </div>
         </aside>
 
-        <main class="admin-main">
-            @RenderBody()
+        <main class="admin-main" id="main-content">
+            <div class="admin-content">@RenderBody()</div>
         </main>
     </div>
 

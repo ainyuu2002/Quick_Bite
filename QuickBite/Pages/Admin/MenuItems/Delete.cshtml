@@ -9,11 +9,10 @@
     <h1 class="page-title">Xóa món ăn</h1>
 </div>
 
-<div class="card card--narrow">
-    <div class="alert alert--warning">
-        Bạn có chắc muốn xóa món này? Nếu món đã có trong đơn hàng, hệ thống sẽ từ chối xóa
-        và bạn nên dùng nút "Ẩn" ở trang danh sách thay vì xóa.
-    </div>
+<div class="danger-surface">
+    <span aria-hidden="true">⚠</span>
+    <h2>Xóa món ăn?</h2>
+    <p>Món đã có trong đơn hàng không thể xóa do ràng buộc Restrict; hãy ẩn món thay vì xóa.</p>
 
     <div class="kv">
         <div class="kv-row">
@@ -34,7 +33,7 @@
         <input type="hidden" asp-for="MenuItem.Id" />
         <div class="form-actions">
             <button type="submit" class="btn btn--danger">Xác nhận xóa</button>
-            <a asp-page="./Index" class="btn btn--outline">Hủy</a>
+            <a asp-page="./Index" class="btn btn--secondary">Hủy</a>
         </div>
     </form>
 </div>
