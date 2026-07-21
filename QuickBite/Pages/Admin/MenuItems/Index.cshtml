@@ -40,7 +40,7 @@
     <input id="menu-search" type="text" name="search" value="@Model.Search" placeholder="Tìm theo tên món…" class="input" />
 
     <label class="visually-hidden" for="menu-category">Danh mục</label>
-    <select id="menu-category" name="categoryId" class="input">
+    <select id="menu-category" name="categoryId" class="input" data-custom-select>
         <option value="">Tất cả danh mục</option>
         @foreach (var category in Model.Categories)
         {
@@ -49,7 +49,7 @@
     </select>
 
     <label class="visually-hidden" for="menu-availability">Trạng thái còn hàng</label>
-    <select id="menu-availability" name="available" class="input">
+    <select id="menu-availability" name="available" class="input" data-custom-select>
         <option value="all" selected="@(Model.Available == "all")">Tất cả trạng thái</option>
         <option value="available" selected="@(Model.Available == "available")">Còn hàng</option>
         <option value="unavailable" selected="@(Model.Available == "unavailable")">Hết hàng</option>
@@ -153,4 +153,8 @@
                asp-route-pageNumber="@(Model.Result.Page + 1)">Sau</a>
         }
     </nav>
+}
+
+@section Scripts {
+    <script src="~/js/admin-custom-select.js" asp-append-version="true"></script>
 }
