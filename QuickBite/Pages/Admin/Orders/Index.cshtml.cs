@@ -31,7 +31,7 @@ public class IndexModel : PageModel
         string? search = null,
         string sortBy = "date",
         string sortDir = "desc",
-        int page = 1)
+        int pageNumber = 1)
     {
         CurrentStatus = status;
         Search = search;
@@ -57,6 +57,6 @@ public class IndexModel : PageModel
             _ => query.OrderByDescending(o => o.CreatedAt)
         };
 
-        Result = await PagedResult<Order>.CreateAsync(query, page, PageSize);
+        Result = await PagedResult<Order>.CreateAsync(query, pageNumber, PageSize);
     }
 }

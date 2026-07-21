@@ -40,7 +40,7 @@ public class IndexModel : PageModel
         string available = "all",
         string sortBy = "name",
         string sortDir = "asc",
-        int page = 1)
+        int pageNumber = 1)
     {
         Search = search;
         CategoryId = categoryId;
@@ -80,7 +80,7 @@ public class IndexModel : PageModel
             _ => query.OrderBy(m => m.Name)
         };
 
-        Result = await PagedResult<MenuItem>.CreateAsync(query, page, PageSize);
+        Result = await PagedResult<MenuItem>.CreateAsync(query, pageNumber, PageSize);
     }
 
     public async Task<IActionResult> OnPostToggleAvailableAsync(int id)

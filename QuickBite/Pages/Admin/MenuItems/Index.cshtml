@@ -14,7 +14,7 @@
             available = Model.Available,
             sortBy = column,
             sortDir = nextDir,
-            page = 1
+            pageNumber = 1
         })!;
     }
 
@@ -35,7 +35,7 @@
     <div class="alert alert--danger">@Model.ErrorMessage</div>
 }
 
-<form method="get" class="toolbar">
+<form method="get" asp-page="./Index" class="toolbar">
     <label class="visually-hidden" for="menu-search">Tìm món ăn</label>
     <input id="menu-search" type="text" name="search" value="@Model.Search" placeholder="Tìm theo tên món…" class="input" />
 
@@ -57,6 +57,10 @@
 
     <button type="submit" class="btn btn--secondary btn--sm">Lọc</button>
 </form>
+
+<p class="result-summary" role="status">
+    Tìm thấy @Model.Result.TotalCount món ăn.
+</p>
 
 <div class="data-surface">
     @if (Model.Result.Items.Any())
@@ -126,12 +130,13 @@
         @if (Model.Result.HasPrevious)
         {
             <a class="btn btn--secondary btn--sm"
+               asp-page="./Index"
                asp-route-search="@Model.Search"
                asp-route-categoryId="@Model.CategoryId"
                asp-route-available="@Model.Available"
                asp-route-sortBy="@Model.SortBy"
                asp-route-sortDir="@Model.SortDir"
-               asp-route-page="@(Model.Result.Page - 1)">Trước</a>
+               asp-route-pageNumber="@(Model.Result.Page - 1)">Trước</a>
         }
 
         <span>Trang @Model.Result.Page / @Model.Result.TotalPages</span>
@@ -139,12 +144,13 @@
         @if (Model.Result.HasNext)
         {
             <a class="btn btn--secondary btn--sm"
+               asp-page="./Index"
                asp-route-search="@Model.Search"
                asp-route-categoryId="@Model.CategoryId"
                asp-route-available="@Model.Available"
                asp-route-sortBy="@Model.SortBy"
                asp-route-sortDir="@Model.SortDir"
-               asp-route-page="@(Model.Result.Page + 1)">Sau</a>
+               asp-route-pageNumber="@(Model.Result.Page + 1)">Sau</a>
         }
     </nav>
 }
