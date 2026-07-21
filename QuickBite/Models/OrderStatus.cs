@@ -45,4 +45,13 @@ public static class OrderStatusExtensions
     /// </summary>
     public static bool CanBeCancelledByCustomer(this OrderStatus current)
         => current == OrderStatus.Pending;
+
+    /// <summary>
+    /// Admin được hủy mọi đơn chưa kết thúc.
+    /// </summary>
+    public static bool CanBeCancelledByStaff(this OrderStatus current)
+        => current is OrderStatus.Pending
+            or OrderStatus.Accepted
+            or OrderStatus.Preparing
+            or OrderStatus.Ready;
 }

@@ -202,6 +202,37 @@ public sealed class OrderService
         return order;
     }
 
+    public async Task<Order> ChangeStatusAsync(
+        int orderId,
+        OrderStatus nextStatus,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Enum.IsDefined(nextStatus))
+        {
+            throw new OrderValidationException("Trạng thái đơn hàng không hợp lệ.");
+        }
+
+        var order = await _db.Orders
+            .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
+
+        var isCancellation = nextStatus == OrderStatus.Cancelled
+            && order.Status.CanBeCancelledByStaff();
+        var isForwardTransition = order.Status.CanTransitionTo(nextStatus);
+
+        if (!isCancellation && !isForwardTransition)
+        {
+            throw new OrderValidationException(
+                $"Không thể chuyển đơn từ {order.Status.ToDisplayText()} " +
+                $"sang {nextStatus.ToDisplayText()}.");
+        }
+
+        order.Status = nextStatus;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return order;
+    }
+
     private static void ValidateOrder(Order order)
     {
         var validationResults = new List<ValidationResult>();
