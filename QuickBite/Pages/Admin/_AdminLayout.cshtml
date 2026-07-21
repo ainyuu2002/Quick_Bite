@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - QuickBite Admin</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/QuickBite.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="d-flex">
+        <nav class="bg-dark text-white p-3" style="width:220px; min-height:100vh;">
+            <h5 class="mb-4">QuickBite Admin</h5>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item mb-2">
+                    <a class="nav-link text-white" asp-page="/Admin/MenuItems/Index">Món ăn</a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link text-white" asp-page="/Admin/Orders/Index">Đơn hàng</a>
+                </li>
+            </ul>
+            <form method="post" asp-page="/Admin/Login" asp-page-handler="Logout" class="mt-4">
+                <button type="submit" class="btn btn-outline-light btn-sm w-100">Đăng xuất</button>
+            </form>
+        </nav>
+        <main class="flex-grow-1 p-4">
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
