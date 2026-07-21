@@ -33,10 +33,16 @@
 
     // FR-17: âm báo
     function playSound() {
-        const audio = document.getElementById("newOrderSound");
-        if (audio && audio.play) audio.play().catch(function () { });
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            osc.type = "sine";
+            osc.frequency.value = 880;
+            osc.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        } catch (e) { /* trình duyệt chặn autoplay → bỏ qua, không lỗi */ }
     }
-
     conn.on("NewOrder", function (o) {
         prependOrderRow(o);
         bumpBadge();

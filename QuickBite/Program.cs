@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Hubs;
+using QuickBite.Models;
 using QuickBite.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +40,14 @@ app.UseSession();
 
 app.MapHub<OrderHub>("/orderHub");
 
+// FR-10: order-track.js gọi sau khi reconnect để đồng bộ trạng thái mới nhất (SDS 3.4)
+app.MapGet("/api/orders/{id:int}/status", async (int id, AppDbContext db) =>
+{
+    var order = await db.Orders.FindAsync(id);
+    return order is null
+        ? Results.NotFound()
+        : Results.Json(new { orderId = order.Id, status = order.Status.ToString(), statusText = order.Status.ToDisplayText() });
+});
 app.MapRazorPages();
 
 app.Run();
