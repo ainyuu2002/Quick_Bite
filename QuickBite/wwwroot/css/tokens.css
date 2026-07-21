@@ -45,4 +45,23 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Legacy compatibility aliases for existing Admin consumers. */
+  --color-accent-hover: var(--color-accent-strong);
+  --color-card: var(--color-surface);
+  --color-danger-bg: var(--color-danger-soft);
+  --color-danger-hover: var(--color-danger-strong);
+  --color-focus: var(--color-focus-ring);
+  --color-graphite: var(--color-ink);
+  --color-graphite-2: var(--color-ink);
+  --color-graphite-ink: var(--color-paper);
+  --color-graphite-ink-2: var(--color-paper-2);
+  --color-graphite-rule: var(--color-rule-strong);
+  --color-rule-2: var(--color-rule-strong);
+  --color-success-bg: var(--color-success-soft);
+  --color-warning-bg: var(--color-warning-soft);
+  --font-mono: var(--font-body);
+  --radius-full: var(--radius-round);
+  --radius-md: var(--radius-surface);
+  --radius-sm: var(--radius-control);
 }
