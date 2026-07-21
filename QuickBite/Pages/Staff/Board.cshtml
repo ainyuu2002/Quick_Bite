@@ -1,0 +1,12 @@
+@page
+@model QuickBite.Pages.Staff.BoardModel
+@* Trang test của Dev D — UI staff thật là /Pages/Admin/Orders (Dev A) và sẽ dùng chung admin-orders.js *@
+
+<h2>Bảng đơn hàng</h2>
+<p>Nhân viên đang online: <strong id="staffOnline">@Model.StaffOnline</strong> · Đơn mới: <span id="newOrderBadge" class="badge bg-danger">0</span></p>
+<ul id="orderList"></ul>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/admin-orders.js" asp-append-version="true"></script>
+}
