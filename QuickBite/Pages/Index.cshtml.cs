@@ -23,7 +23,15 @@ namespace QuickBite.Pages
         }
         public async Task<IActionResult> OnPostTestAsync()
         {
-            await _hub.Clients.Group("staff").SendAsync("NewOrder", new { id = 1, total = 50000 });
+            // Payload đúng SDS 3.3 — đóng thế cho OrderService.CreateOrderAsync (Dev C)
+            await _hub.Clients.Group("staff").SendAsync("NewOrder", new
+            {
+                id = 1,
+                customerName = "Nguyễn Văn A",
+                total = 50000,
+                createdAt = DateTime.Now,
+                items = new[] { new { name = "Gà rán", quantity = 2 } }
+            });
             return RedirectToPage();
 
         }
