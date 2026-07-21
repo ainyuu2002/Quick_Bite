@@ -51,6 +51,7 @@ public sealed class IndexModel : PageModel
                 new CreateOrderRequest(
                     Input.CustomerName,
                     Input.Phone,
+                    Input.Address,
                     Input.Note,
                     Input.PaymentMethod!.Value,
                     Cart.Select(item => new CreateOrderItem(item.MenuItemId, item.Quantity)).ToArray()),
@@ -102,6 +103,11 @@ public sealed class IndexModel : PageModel
             ErrorMessage = "Số điện thoại phải có 9–11 chữ số và bắt đầu bằng 0.")]
         [Display(Name = "Số điện thoại")]
         public string Phone { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập địa chỉ giao hàng.")]
+        [StringLength(500, ErrorMessage = "Địa chỉ không được vượt quá 500 ký tự.")]
+        [Display(Name = "Địa chỉ giao hàng")]
+        public string Address { get; set; } = string.Empty;
 
         [StringLength(500, ErrorMessage = "Ghi chú không được vượt quá 500 ký tự.")]
         [Display(Name = "Ghi chú")]

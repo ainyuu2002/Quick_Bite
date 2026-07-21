@@ -43,6 +43,21 @@ else
                             <span asp-validation-for="Input.Phone" class="text-danger"></span>
                         </div>
 
+                        <div class="mb-3">
+                            <label asp-for="Input.Address" class="form-label"></label>
+                            <textarea asp-for="Input.Address" class="form-control" rows="3"
+                                      autocomplete="street-address"
+                                      placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."></textarea>
+                            <div class="form-check mt-2">
+                                <input id="direct-pickup" class="form-check-input" type="checkbox"
+                                       data-direct-pickup />
+                                <label class="form-check-label" for="direct-pickup">
+                                    Nhận trực tiếp tại quán (không giao hàng)
+                                </label>
+                            </div>
+                            <span asp-validation-for="Input.Address" class="text-danger"></span>
+                        </div>
+
                         <div class="mb-0">
                             <label asp-for="Input.Note" class="form-label"></label>
                             <textarea asp-for="Input.Note" class="form-control" rows="4"
@@ -114,4 +129,33 @@ else
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const directPickup = document.querySelector('[data-direct-pickup]');
+            const addressInput = document.getElementById('Input_Address');
+            const directPickupText = 'Nhận trực tiếp';
+
+            if (!directPickup || !addressInput) {
+                return;
+            }
+
+            directPickup.checked = addressInput.value.trim() === directPickupText;
+
+            const updateAddress = () => {
+                if (directPickup.checked) {
+                    addressInput.value = directPickupText;
+                    addressInput.readOnly = true;
+                    return;
+                }
+
+                if (addressInput.value.trim() === directPickupText) {
+                    addressInput.value = '';
+                }
+                addressInput.readOnly = false;
+            };
+
+            directPickup.addEventListener('change', updateAddress);
+            updateAddress();
+        })();
+    </script>
 }

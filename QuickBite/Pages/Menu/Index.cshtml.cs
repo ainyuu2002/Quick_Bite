@@ -10,6 +10,7 @@ namespace QuickBite.Pages.Menu;
 public class IndexModel : PageModel
 {
     private const string CartKey = "Cart";
+    private const int PageSize = 12;
     private readonly AppDbContext _context;
 
     public IndexModel(AppDbContext context)
@@ -18,6 +19,29 @@ public class IndexModel : PageModel
     }
 
     public List<Category> Categories { get; private set; } = new();
+
+    public List<MenuItem> MenuItems { get; private set; } = new();
+
+    [BindProperty(SupportsGet = true)]
+    public int? CategoryId { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string? SearchTerm { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
+
+    public int TotalItems { get; private set; }
+
+    public int TotalPages { get; private set; }
+
+    public int FirstItemNumber => TotalItems == 0 ? 0 : ((PageNumber - 1) * PageSize) + 1;
+
+    public int LastItemNumber => Math.Min(PageNumber * PageSize, TotalItems);
+
+    public string SelectedCategoryName => CategoryId is null
+        ? "Tất cả món ăn"
+        : Categories.FirstOrDefault(category => category.Id == CategoryId)?.Name ?? "Danh mục";
 
     [TempData]
     public string? Message { get; set; }
@@ -44,7 +68,12 @@ public class IndexModel : PageModel
         if (!menuItem.IsAvailable)
         {
             ErrorMessage = "Món ăn hiện đã hết hàng.";
-            return RedirectToPage();
+            return RedirectToPage(new
+            {
+                categoryId = CategoryId,
+                searchTerm = SearchTerm,
+                pageNumber = PageNumber
+            });
         }
 
         var cart = GetCart();
@@ -69,16 +98,57 @@ public class IndexModel : PageModel
         SaveCart(cart);
         Message = $"Đã thêm {menuItem.Name} vào giỏ hàng.";
 
-        return RedirectToPage();
+        return RedirectToPage(new
+        {
+            categoryId = CategoryId,
+            searchTerm = SearchTerm,
+            pageNumber = PageNumber
+        });
     }
 
     private async Task LoadMenuAsync()
     {
         Categories = await _context.Categories
             .AsNoTracking()
-            .Include(category => category.MenuItems.OrderBy(item => item.Name))
             .OrderBy(category => category.DisplayOrder)
             .ThenBy(category => category.Name)
+            .ToListAsync();
+
+        var menuQuery = _context.MenuItems
+            .AsNoTracking()
+            .Include(item => item.Category)
+            .AsQueryable();
+
+        if (CategoryId.HasValue)
+        {
+            menuQuery = menuQuery.Where(item => item.CategoryId == CategoryId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            SearchTerm = SearchTerm.Trim();
+            var keyword = SearchTerm;
+
+            menuQuery = menuQuery.Where(item =>
+                item.Name.Contains(keyword) ||
+                (item.Description != null && item.Description.Contains(keyword)));
+        }
+
+        TotalItems = await menuQuery.CountAsync();
+        TotalPages = (int)Math.Ceiling(TotalItems / (double)PageSize);
+
+        PageNumber = Math.Max(PageNumber, 1);
+        if (TotalPages > 0 && PageNumber > TotalPages)
+        {
+            PageNumber = TotalPages;
+        }
+
+        MenuItems = await menuQuery
+            .OrderBy(item => item.Category!.DisplayOrder)
+            .ThenBy(item => item.Name)
+            .ThenBy(item => item.Id)
+            .Skip((PageNumber - 1) * PageSize)
+            .Take(PageSize)
             .ToListAsync();
     }
 
