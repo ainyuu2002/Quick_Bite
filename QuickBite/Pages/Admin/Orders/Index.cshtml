@@ -1,0 +1,52 @@
+﻿@page
+@model QuickBite.Pages.Admin.Orders.IndexModel
+@using QuickBite.Models
+
+@{
+    ViewData["Title"] = "Quản lý đơn hàng";
+}
+
+<h1>Quản lý đơn hàng</h1>
+
+<ul class="nav nav-tabs mb-3">
+    @foreach (var status in Enum.GetValues<OrderStatus>())
+    {
+        <li class="nav-item">
+            <a class="nav-link @(status == Model.CurrentStatus ? "active" : "")"
+               asp-route-status="@status">
+                @status.ToDisplayText()
+            </a>
+        </li>
+    }
+</ul>
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Mã đơn</th>
+            <th>Khách hàng</th>
+            <th>SĐT</th>
+            <th>Tổng tiền</th>
+            <th>Thời gian đặt</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var order in Model.Orders)
+        {
+            <tr>
+                <td>#@order.Id</td>
+                <td>@order.CustomerName</td>
+                <td>@order.Phone</td>
+                <td>@order.Total.ToString("N0") đ</td>
+                <td>@order.CreatedAt.ToString("HH:mm dd/MM/yyyy")</td>
+                <td></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!Model.Orders.Any())
+{
+    <p class="text-muted">Không có đơn nào ở trạng thái này.</p>
+}
