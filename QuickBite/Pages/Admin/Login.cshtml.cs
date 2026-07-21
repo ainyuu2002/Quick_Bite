@@ -32,7 +32,7 @@ namespace QuickBite.Pages.Admin
         {
             if(User.Identity?.IsAuthenticated == true)
             {
-                return RedirectToPage("/Index");
+                return RedirectToPage("/Admin/Orders/Index");
             }
             return Page();
         }
@@ -68,7 +68,7 @@ namespace QuickBite.Pages.Admin
             var principal = new ClaimsPrincipal(identity);
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-            return RedirectToPage("/Index");
+            return RedirectToPage("/Admin/Orders/Index");
         }
 
         public async Task<IActionResult> OnPostLogoutAsync()
