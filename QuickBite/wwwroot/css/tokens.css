@@ -1,0 +1,67 @@
+/* Hallmark · pre-emit critique: P4 H4 E4 S5 R5 V4 */
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+:root {
+  --color-paper: oklch(98.5% 0.004 264);
+  --color-paper-2: oklch(96.8% 0.008 264);
+  --color-surface: oklch(100% 0 0);
+  --color-surface-hover: oklch(98% 0.009 275);
+  --color-ink: oklch(21% 0.025 264);
+  --color-ink-2: oklch(45% 0.025 264);
+  --color-ink-3: oklch(58% 0.02 264);
+  --color-rule: oklch(90.5% 0.012 264);
+  --color-rule-strong: oklch(82% 0.018 264);
+  --color-accent: oklch(55% 0.19 275);
+  --color-accent-strong: oklch(47% 0.2 275);
+  --color-accent-soft: oklch(94.5% 0.028 275);
+  --color-accent-ink: oklch(99% 0.002 264);
+  --color-focus-ring: oklch(55% 0.19 275);
+  --color-success: oklch(45% 0.12 150);
+  --color-success-soft: oklch(95% 0.035 150);
+  --color-warning: oklch(53% 0.13 72);
+  --color-warning-soft: oklch(96% 0.04 85);
+  --color-danger: oklch(54% 0.2 27);
+  --color-danger-strong: oklch(47% 0.2 27);
+  --color-danger-soft: oklch(96% 0.035 27);
+  --font-display: "Manrope", "Segoe UI", sans-serif;
+  --font-body: "Inter", "Segoe UI", sans-serif;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-title: clamp(1.5rem, 2vw, 2rem);
+  --radius-control: 0.5rem;
+  --radius-surface: 0.75rem;
+  --radius-round: 999px;
+  --shadow-surface: 0 1px 2px oklch(21% 0.025 264 / 0.05), 0 8px 24px oklch(21% 0.025 264 / 0.04);
+  --dur-fast: 120ms;
+  --dur-normal: 180ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Legacy compatibility aliases for existing Admin consumers. */
+  --color-accent-hover: var(--color-accent-strong);
+  --color-card: var(--color-surface);
+  --color-danger-bg: var(--color-danger-soft);
+  --color-danger-hover: var(--color-danger-strong);
+  --color-focus: var(--color-focus-ring);
+  --color-graphite: var(--color-ink);
+  --color-graphite-2: var(--color-ink);
+  --color-graphite-ink: var(--color-paper);
+  --color-graphite-ink-2: var(--color-paper-2);
+  --color-graphite-rule: var(--color-rule-strong);
+  --color-rule-2: var(--color-rule-strong);
+  --color-success-bg: var(--color-success-soft);
+  --color-warning-bg: var(--color-warning-soft);
+  --font-mono: var(--font-body);
+  --radius-full: var(--radius-round);
+  --radius-md: var(--radius-surface);
+  --radius-sm: var(--radius-control);
+}

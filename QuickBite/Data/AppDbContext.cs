@@ -41,5 +41,8 @@ public class AppDbContext : DbContext
 
         mb.Entity<Order>().HasIndex(o => o.Status);
         mb.Entity<Order>().HasIndex(o => o.CreatedAt);
+        mb.Entity<Order>()
+          .Property(o => o.PaymentMethod)
+          .HasDefaultValue(PaymentMethod.Cash);
     }
 }

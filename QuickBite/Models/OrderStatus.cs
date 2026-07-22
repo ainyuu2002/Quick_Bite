@@ -3,7 +3,7 @@ namespace QuickBite.Models;
 /// <summary>
 /// Trạng thái đơn hàng — chỉ được tiến đúng 1 bước (BR-01).
 /// Pending → Accepted → Preparing → Ready → Completed.
-/// Cancelled được phép từ mọi trạng thái trừ Completed.
+/// Chính sách hủy được kiểm tra riêng bởi CanBeCancelledBy.
 /// </summary>
 public enum OrderStatus
 {
@@ -30,14 +30,19 @@ public static class OrderStatusExtensions
     };
 
     /// <summary>
-    /// Kiểm tra máy trạng thái (BR-01): chỉ cho tiến đúng 1 bước,
-    /// hoặc hủy khi chưa Completed. Dùng trong OrderService.ChangeStatus.
+    /// Kiểm tra máy trạng thái (BR-01): chỉ cho tiến đúng 1 bước.
+    /// Quyền hủy của khách và nhân viên là lớp chính sách riêng.
     /// </summary>
     public static bool CanTransitionTo(this OrderStatus current, OrderStatus next)
     {
-        if (next == OrderStatus.Cancelled)
-            return current != OrderStatus.Completed && current != OrderStatus.Cancelled;
-
-        return (int)next == (int)current + 1 && current != OrderStatus.Cancelled;
+        return next != OrderStatus.Cancelled
+            && (int)next == (int)current + 1
+            && current is not OrderStatus.Completed and not OrderStatus.Cancelled;
     }
+
+    /// <summary>
+    /// Khách chỉ được hủy đơn khi quán chưa xác nhận.
+    /// </summary>
+    public static bool CanBeCancelledByCustomer(this OrderStatus current)
+        => current == OrderStatus.Pending;
 }

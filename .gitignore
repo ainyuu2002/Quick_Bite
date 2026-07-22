@@ -76,3 +76,8 @@ Thumbs.db
 
 # Environment
 .env
+
+# Local agent workflow artifacts
+.superpowers/
+.hallmark/
+.worktrees/

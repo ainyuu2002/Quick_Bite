@@ -1,0 +1,39 @@
+@page
+@model QuickBite.Pages.Admin.MenuItems.DeleteModel
+
+@{
+    ViewData["Title"] = "Xóa món ăn";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Xóa món ăn</h1>
+</div>
+
+<div class="danger-surface">
+    <span aria-hidden="true">⚠</span>
+    <h2>Xóa món ăn?</h2>
+    <p>Món đã có trong đơn hàng không thể xóa do ràng buộc Restrict; hãy ẩn món thay vì xóa.</p>
+
+    <div class="kv">
+        <div class="kv-row">
+            <span class="kv-label">Tên món</span>
+            <span class="kv-value">@Model.MenuItem.Name</span>
+        </div>
+        <div class="kv-row">
+            <span class="kv-label">Danh mục</span>
+            <span class="kv-value">@Model.MenuItem.Category?.Name</span>
+        </div>
+        <div class="kv-row">
+            <span class="kv-label">Giá</span>
+            <span class="kv-value">@Model.MenuItem.Price.ToString("N0") đ</span>
+        </div>
+    </div>
+
+    <form method="post">
+        <input type="hidden" asp-for="MenuItem.Id" />
+        <div class="form-actions">
+            <button type="submit" class="btn btn--danger">Xác nhận xóa</button>
+            <a asp-page="./Index" class="btn btn--secondary">Hủy</a>
+        </div>
+    </form>
+</div>

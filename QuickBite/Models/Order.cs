@@ -16,6 +16,10 @@ public class Order
     [StringLength(11)]
     public string Phone { get; set; } = null!;
 
+    [Required(ErrorMessage = "Vui lòng nhập địa chỉ")]
+    [StringLength(500)]
+    public string Address { get; set; } = null!;
+
     [StringLength(500)]
     public string? Note { get; set; }
 
@@ -26,6 +30,8 @@ public class Order
     /// <summary>Tổng tiền chốt tại thời điểm đặt (BR-03) = Σ UnitPrice × Quantity.</summary>
     [Column(TypeName = "decimal(18,0)")]
     public decimal Total { get; set; }
+
+    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
 
     public List<OrderItem> Items { get; set; } = new();
 }

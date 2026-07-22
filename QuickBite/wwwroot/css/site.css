@@ -20,3 +20,253 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+.menu-item-image,
+.menu-item-placeholder {
+  height: 210px;
+  object-fit: cover;
+}
+
+.menu-item-placeholder {
+  background: #f1f3f5;
+}
+
+.menu-filter-panel {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+}
+
+.menu-category-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+
+.cart-item-image {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+}
+
+.cart-quantity {
+  min-width: 2rem;
+  text-align: center;
+}
+
+.checkout-summary {
+  position: sticky;
+  top: 1rem;
+}
+
+.payment-method-options {
+  display: grid;
+  gap: .75rem;
+}
+
+.payment-method-option {
+  align-items: flex-start;
+  border: 1px solid #dee2e6;
+  border-radius: .75rem;
+  cursor: pointer;
+  display: flex;
+  gap: .75rem;
+  padding: 1rem;
+}
+
+.payment-method-option:has(input:checked) {
+  background: #f0f6ff;
+  border-color: #0d6efd;
+}
+
+.payment-method-option input {
+  margin-top: .25rem;
+}
+
+.payment-method-option span {
+  display: grid;
+}
+
+.payment-method-option small {
+  color: #6c757d;
+}
+
+.track-search-card {
+  max-width: 42rem;
+}
+
+.order-history-item {
+  border-bottom: 2px solid #e9ecef;
+  display: block;
+  margin-bottom: 3rem;
+  padding-bottom: 3rem;
+}
+
+.order-history-item:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.order-progress {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.order-progress-step {
+  align-items: center;
+  color: #6c757d;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  position: relative;
+  text-align: center;
+}
+
+.order-progress-step::before {
+  background: #dee2e6;
+  content: "";
+  height: .25rem;
+  left: calc(-50% + 1.25rem);
+  position: absolute;
+  right: calc(50% + 1.25rem);
+  top: 1rem;
+}
+
+.order-progress-step:first-child::before {
+  display: none;
+}
+
+.order-progress-marker {
+  align-items: center;
+  background: #e9ecef;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #ced4da;
+  display: flex;
+  font-weight: 700;
+  height: 2.25rem;
+  justify-content: center;
+  position: relative;
+  width: 2.25rem;
+  z-index: 1;
+}
+
+.order-progress-step.is-complete::before,
+.order-progress-step.is-current::before {
+  background: #0d6efd;
+}
+
+.order-progress-step.is-complete,
+.order-progress-step.is-current {
+  color: #0d6efd;
+}
+
+.order-progress-step.is-complete .order-progress-marker,
+.order-progress-step.is-current .order-progress-marker {
+  background: #0d6efd;
+  box-shadow: 0 0 0 1px #0d6efd;
+  color: #fff;
+}
+
+@media (max-width: 767.98px) {
+  .checkout-summary {
+    position: static;
+  }
+
+  .order-progress {
+    grid-template-columns: 1fr;
+  }
+
+  .order-progress-step {
+    align-items: center;
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .order-progress-step::before {
+    bottom: calc(50% + 1.1rem);
+    height: auto;
+    left: 1rem;
+    right: auto;
+    top: calc(-50% + 1.1rem);
+    width: .25rem;
+  }
+}
+
+.home-hero {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 55%, #eff6ff 100%);
+  border: 1px solid #f1f3f5;
+}
+
+.home-eyebrow {
+  color: #b45309;
+  font-size: .85rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.home-hero-card {
+  background: rgba(255, 255, 255, .8);
+  border: 1px solid rgba(255, 255, 255, .95);
+  box-shadow: 0 1.25rem 3rem rgba(30, 41, 59, .12);
+}
+
+.home-dish-icon {
+  font-size: 5rem;
+  line-height: 1;
+}
+
+.home-feature {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 .75rem 2rem rgba(30, 41, 59, .06);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.home-feature:hover {
+  box-shadow: 0 1rem 2.5rem rgba(30, 41, 59, .1);
+  transform: translateY(-4px);
+}
+
+.home-feature-number {
+  align-items: center;
+  background: #e7f1ff;
+  border-radius: 50%;
+  color: #0d6efd;
+  display: flex;
+  font-weight: 700;
+  height: 3rem;
+  justify-content: center;
+  width: 3rem;
+}
+
+.home-steps {
+  background: #f8f9fa;
+}
+
+.home-step-list {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  padding-left: 0;
+}
+
+.home-step-list li {
+  background: #fff;
+  border-left: 4px solid #0d6efd;
+  border-radius: .75rem;
+  display: grid;
+  padding: 1rem 1.25rem;
+}
+
+.home-step-list span {
+  color: #6c757d;
+  margin-top: .2rem;
+}
+
+.home-cta {
+  background: linear-gradient(135deg, #0d6efd, #084298);
+  box-shadow: 0 1rem 2.5rem rgba(13, 110, 253, .2);
+}

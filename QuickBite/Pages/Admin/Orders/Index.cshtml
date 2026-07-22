@@ -1,0 +1,135 @@
+﻿@page
+@model QuickBite.Pages.Admin.Orders.IndexModel
+@using QuickBite.Models
+
+@{
+    ViewData["Title"] = "Quản lý đơn hàng";
+
+    string SortLink(string column)
+    {
+        var nextDir = (Model.SortBy == column && Model.SortDir == "asc") ? "desc" : "asc";
+        return Url.Page("./Index", new
+        {
+            status = Model.CurrentStatus,
+            search = Model.Search,
+            sortBy = column,
+            sortDir = nextDir,
+            pageNumber = 1
+        })!;
+    }
+
+    string SortArrow(string column)
+        => Model.SortBy != column ? "" : (Model.SortDir == "asc" ? " ▲" : " ▼");
+
+    string? AriaSort(string column)
+        => Model.SortBy != column ? null : (Model.SortDir == "asc" ? "ascending" : "descending");
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Quản lý đơn hàng</h1>
+        <p class="page-description">Theo dõi và xử lý đơn theo từng trạng thái.</p>
+    </div>
+</div>
+
+<nav class="tabs" aria-label="Lọc theo trạng thái">
+    @foreach (var status in Enum.GetValues<OrderStatus>())
+    {
+        <a class="tab"
+           asp-route-status="@status"
+           asp-route-search="@Model.Search"
+           asp-route-sortBy="@Model.SortBy"
+           asp-route-sortDir="@Model.SortDir"
+           asp-route-pageNumber="1"
+           aria-current="@(status == Model.CurrentStatus ? "page" : null)">
+            @status.ToDisplayText()
+        </a>
+    }
+</nav>
+
+<form method="get" asp-page="./Index" class="toolbar">
+    <input type="hidden" name="status" value="@Model.CurrentStatus" />
+    <input type="hidden" name="sortBy" value="@Model.SortBy" />
+    <input type="hidden" name="sortDir" value="@Model.SortDir" />
+    <input type="text"
+           name="search"
+           value="@Model.Search"
+           placeholder="Tìm theo mã đơn, tên khách hoặc SĐT…"
+           aria-label="Tìm đơn hàng"
+           class="input" />
+    <button type="submit" class="btn btn--secondary btn--sm">Tìm</button>
+</form>
+
+<p class="result-summary" role="status">
+    Tìm thấy @Model.Result.TotalCount đơn hàng trong trạng thái @Model.CurrentStatus.ToDisplayText().
+</p>
+
+<div class="data-surface">
+    @if (Model.Result.Items.Any())
+    {
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Mã đơn</th>
+                <th>Khách hàng</th>
+                <th>SĐT</th>
+                <th class="num" aria-sort="@AriaSort("total")">
+                    <a href="@SortLink("total")">Tổng tiền<span aria-hidden="true">@SortArrow("total")</span></a>
+                </th>
+                <th aria-sort="@AriaSort("date")">
+                    <a href="@SortLink("date")">Thời gian đặt<span aria-hidden="true">@SortArrow("date")</span></a>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in Model.Result.Items)
+            {
+                <tr>
+                    <td><span class="order-id">#@order.Id</span></td>
+                    <td>@order.CustomerName</td>
+                    <td>@order.Phone</td>
+                    <td class="num">@order.Total.ToString("N0") đ</td>
+                    <td>
+                        <time datetime="@order.CreatedAt.ToString("O")">
+                            @order.CreatedAt.ToString("HH:mm dd/MM/yyyy")
+                        </time>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    }
+    else
+    {
+        <p class="empty-state">Không có đơn nào khớp điều kiện.</p>
+    }
+</div>
+
+@if (Model.Result.TotalPages > 1)
+{
+    <nav class="pagination" aria-label="Phân trang">
+        @if (Model.Result.HasPrevious)
+        {
+            <a class="btn btn--secondary btn--sm"
+               asp-page="./Index"
+               asp-route-status="@Model.CurrentStatus"
+               asp-route-search="@Model.Search"
+               asp-route-sortBy="@Model.SortBy"
+               asp-route-sortDir="@Model.SortDir"
+               asp-route-pageNumber="@(Model.Result.Page - 1)">« Trước</a>
+        }
+
+        <span>Trang @Model.Result.Page / @Model.Result.TotalPages</span>
+
+        @if (Model.Result.HasNext)
+        {
+            <a class="btn btn--secondary btn--sm"
+               asp-page="./Index"
+               asp-route-status="@Model.CurrentStatus"
+               asp-route-search="@Model.Search"
+               asp-route-sortBy="@Model.SortBy"
+               asp-route-sortDir="@Model.SortDir"
+               asp-route-pageNumber="@(Model.Result.Page + 1)">Sau »</a>
+        }
+    </nav>
+}

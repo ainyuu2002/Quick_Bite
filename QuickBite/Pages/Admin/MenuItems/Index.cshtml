@@ -1,0 +1,160 @@
+@page
+@model QuickBite.Pages.Admin.MenuItems.IndexModel
+
+@{
+    ViewData["Title"] = "Quản lý món ăn";
+
+    string SortLink(string column)
+    {
+        var nextDir = (Model.SortBy == column && Model.SortDir == "asc") ? "desc" : "asc";
+        return Url.Page("./Index", new
+        {
+            search = Model.Search,
+            categoryId = Model.CategoryId,
+            available = Model.Available,
+            sortBy = column,
+            sortDir = nextDir,
+            pageNumber = 1
+        })!;
+    }
+
+    string SortArrow(string column)
+        => Model.SortBy != column ? "" : (Model.SortDir == "asc" ? " ▲" : " ▼");
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Quản lý món ăn</h1>
+        <p class="page-description">Theo dõi thực đơn và trạng thái phục vụ.</p>
+    </div>
+    <a asp-page="Create" class="btn btn--primary">Thêm món mới</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert--danger">@Model.ErrorMessage</div>
+}
+
+<form method="get" asp-page="./Index" class="toolbar">
+    <label class="visually-hidden" for="menu-search">Tìm món ăn</label>
+    <input id="menu-search" type="text" name="search" value="@Model.Search" placeholder="Tìm theo tên món…" class="input" />
+
+    <label class="visually-hidden" for="menu-category">Danh mục</label>
+    <select id="menu-category" name="categoryId" class="input" data-custom-select>
+        <option value="">Tất cả danh mục</option>
+        @foreach (var category in Model.Categories)
+        {
+            <option value="@category.Id" selected="@(Model.CategoryId == category.Id)">@category.Name</option>
+        }
+    </select>
+
+    <label class="visually-hidden" for="menu-availability">Trạng thái còn hàng</label>
+    <select id="menu-availability" name="available" class="input" data-custom-select>
+        <option value="all" selected="@(Model.Available == "all")">Tất cả trạng thái</option>
+        <option value="available" selected="@(Model.Available == "available")">Còn hàng</option>
+        <option value="unavailable" selected="@(Model.Available == "unavailable")">Hết hàng</option>
+    </select>
+
+    <button type="submit" class="btn btn--secondary btn--sm">Lọc</button>
+</form>
+
+<p class="result-summary" role="status">
+    Tìm thấy @Model.Result.TotalCount món ăn.
+</p>
+
+<div class="data-surface">
+    @if (Model.Result.Items.Any())
+    {
+    <table class="table">
+        <thead>
+            <tr>
+                <th><a href="@SortLink("name")">Tên món@(SortArrow("name"))</a></th>
+                <th>Danh mục</th>
+                <th class="num"><a href="@SortLink("price")">Giá@(SortArrow("price"))</a></th>
+                <th>Trạng thái</th>
+                <th><span class="visually-hidden">Thao tác</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Result.Items)
+            {
+                <tr>
+                    <td>
+                        <div class="menu-cell">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" alt="" class="table-thumb" />
+                            }
+                            else
+                            {
+                                <span class="table-thumb-empty" aria-hidden="true">—</span>
+                            }
+                            <span class="menu-cell__name">@item.Name</span>
+                        </div>
+                    </td>
+                    <td>@item.Category?.Name</td>
+                    <td class="num">@item.Price.ToString("N0") đ</td>
+                    <td>
+                        @if (item.IsAvailable)
+                        {
+                            <span class="badge badge--success">Còn hàng</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge--muted">Hết hàng</span>
+                        }
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn--secondary btn--sm">Sửa</a>
+                            <a asp-page="./Delete" asp-route-id="@item.Id" class="btn btn--danger-quiet btn--sm">Xóa</a>
+                            <form method="post" asp-page-handler="ToggleAvailable" asp-route-id="@item.Id">
+                                <button type="submit" class="btn btn--secondary btn--sm">@(item.IsAvailable ? "Ẩn món" : "Hiện món")</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    }
+    else
+    {
+        <p class="empty-state">Không có món ăn nào khớp điều kiện</p>
+    }
+</div>
+
+@if (Model.Result.TotalPages > 1)
+{
+    <nav class="pagination" aria-label="Phân trang">
+        @if (Model.Result.HasPrevious)
+        {
+            <a class="btn btn--secondary btn--sm"
+               asp-page="./Index"
+               asp-route-search="@Model.Search"
+               asp-route-categoryId="@Model.CategoryId"
+               asp-route-available="@Model.Available"
+               asp-route-sortBy="@Model.SortBy"
+               asp-route-sortDir="@Model.SortDir"
+               asp-route-pageNumber="@(Model.Result.Page - 1)">Trước</a>
+        }
+
+        <span>Trang @Model.Result.Page / @Model.Result.TotalPages</span>
+
+        @if (Model.Result.HasNext)
+        {
+            <a class="btn btn--secondary btn--sm"
+               asp-page="./Index"
+               asp-route-search="@Model.Search"
+               asp-route-categoryId="@Model.CategoryId"
+               asp-route-available="@Model.Available"
+               asp-route-sortBy="@Model.SortBy"
+               asp-route-sortDir="@Model.SortDir"
+               asp-route-pageNumber="@(Model.Result.Page + 1)">Sau</a>
+        }
+    </nav>
+}
+
+@section Scripts {
+    <script src="~/js/admin-custom-select.js" asp-append-version="true"></script>
+}
