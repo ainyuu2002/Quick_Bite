@@ -43,14 +43,14 @@ namespace QuickBite.Pages.Admin
             {
                 return Page();
             }
-            var user = await _db.AdminUsers.FirstOrDefaultAsync(u => u.Username == Username);
+            var user = await _db.Accounts.FirstOrDefaultAsync(u => u.Username == Username);
             if (user is null)
             {
                 ModelState.AddModelError(string.Empty, "Tên đăng nhập hoặc mật khẩu không đúng");
                 return Page();
             }
 
-            var hasher = new PasswordHasher<AdminUser>();
+            var hasher = new PasswordHasher<Account>();
             var verifyResult = hasher.VerifyHashedPassword(user, user.PasswordHash, Password);
 
             if(verifyResult == PasswordVerificationResult.Failed)
@@ -59,10 +59,18 @@ namespace QuickBite.Pages.Admin
                 return Page();
             }
 
+            if (!user.IsActive)
+            {
+                ModelState.AddModelError(string.Empty,
+                    "Tài khoản đã bị khoá. Vui lòng liên hệ chủ quán.");
+                return Page();
+            }
+
             var claims = new List<Claim>
             {
                 new (ClaimTypes.Name, user.Username),
-                new (ClaimTypes.NameIdentifier, user.Id.ToString())
+                new (ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new (ClaimTypes.Role, user.Role.ToString())
             };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);

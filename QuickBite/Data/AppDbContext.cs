@@ -11,7 +11,8 @@ public class AppDbContext : DbContext
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
-    public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -35,9 +36,27 @@ public class AppDbContext : DbContext
           .HasForeignKey(oi => oi.MenuItemId)
           .OnDelete(DeleteBehavior.Restrict);
 
-        mb.Entity<AdminUser>()
+        mb.Entity<Account>()
           .HasIndex(u => u.Username)
           .IsUnique();
+
+        // Người nhận đơn: Restrict để không bao giờ mất dấu ai đã xử lý đơn cũ.
+        // Muốn "xoá" nhân viên thì tắt Account.IsActive, không xoá cứng.
+        mb.Entity<Order>()
+          .HasOne(o => o.AcceptedByAccount)
+          .WithMany()
+          .HasForeignKey(o => o.AcceptedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<WorkSession>()
+          .HasOne(w => w.Account)
+          .WithMany(a => a.WorkSessions)
+          .HasForeignKey(w => w.AccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        // Phục vụ báo cáo chấm công theo người + theo ngày.
+        mb.Entity<WorkSession>()
+          .HasIndex(w => new { w.AccountId, w.CheckInAt });
 
         mb.Entity<Order>().HasIndex(o => o.Status);
         mb.Entity<Order>().HasIndex(o => o.CreatedAt);
