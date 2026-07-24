@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Models;
 using QuickBite.Services;
+using System.Security.Claims;
 
 namespace QuickBite.Pages.Admin.Orders;
 
@@ -13,12 +14,20 @@ public class IndexModel : PageModel
 
     private readonly AppDbContext _context;
     private readonly OrderService _orderService;
+    private readonly ConnectionTracker _connectionTracker;
 
-    public IndexModel(AppDbContext context, OrderService orderService)
+    public IndexModel(
+        AppDbContext context,
+        OrderService orderService,
+        ConnectionTracker connectionTracker)
     {
         _context = context;
         _orderService = orderService;
+        _connectionTracker = connectionTracker;
     }
+
+    /// <summary>Số nhân viên đang trực lúc trang được render (JS cập nhật tiếp qua SignalR).</summary>
+    public int StaffOnline => _connectionTracker.StaffOnline;
 
     public PagedResult<Order> Result { get; set; } = default!;
 
@@ -46,6 +55,7 @@ public class IndexModel : PageModel
             .AsNoTracking()
             .Include(o => o.Items)
             .ThenInclude(item => item.MenuItem)
+            .Include(o => o.AcceptedByAccount)
             .Where(o => o.Status == status);
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -87,9 +97,15 @@ public class IndexModel : PageModel
 
         try
         {
+            var actorAccountId = int.TryParse(
+                User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
+                ? accountId
+                : (int?)null;
+
             var order = await _orderService.ChangeStatusAsync(
                 orderId,
                 nextStatus,
+                actorAccountId,
                 cancellationToken);
 
             TempData["SuccessMessage"] =

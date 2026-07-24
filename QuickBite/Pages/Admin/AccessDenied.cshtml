@@ -1,0 +1,21 @@
+@page
+@model QuickBite.Pages.Admin.AccessDeniedModel
+
+@{
+    ViewData["Title"] = "Không có quyền truy cập";
+    Layout = "/Pages/Admin/_AdminLayout.cshtml";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Không có quyền truy cập</h1>
+</div>
+
+<div class="form-surface">
+    <p>Trang này chỉ dành cho tài khoản <strong>chủ quán</strong>.</p>
+    <p class="page-description">
+        Nếu bạn cần thao tác ở đây, hãy nhờ chủ quán nâng quyền cho tài khoản của bạn.
+    </p>
+    <div class="form-actions">
+        <a asp-page="/Admin/Orders/Index" class="btn btn--primary">Về trang đơn hàng</a>
+    </div>
+</div>

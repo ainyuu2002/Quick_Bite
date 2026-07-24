@@ -33,5 +33,15 @@ public class Order
 
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
 
+    /// <summary>
+    /// Nhân viên đã bấm "Nhận đơn" (Pending → Accepted). Null = chưa ai nhận.
+    /// Chốt một lần, không đổi khi đơn đi tiếp các trạng thái sau.
+    /// </summary>
+    public int? AcceptedByAccountId { get; set; }
+
+    public Account? AcceptedByAccount { get; set; }
+
+    public DateTime? AcceptedAt { get; set; }
+
     public List<OrderItem> Items { get; set; } = new();
 }

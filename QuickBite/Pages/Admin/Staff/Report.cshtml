@@ -1,0 +1,82 @@
+@page
+@model QuickBite.Pages.Admin.Staff.ReportModel
+
+@{
+    ViewData["Title"] = "Báo cáo chấm công";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Báo cáo chấm công</h1>
+        <p class="page-description">
+            Thời gian trực và số đơn đã nhận của từng nhân viên theo ngày.
+            Ca làm được tính tự động theo thời gian đăng nhập &amp; giữ kết nối.
+        </p>
+    </div>
+    <a asp-page="./Index" class="btn btn--secondary">Về danh sách nhân viên</a>
+</div>
+
+<form method="get" asp-page="./Report" class="toolbar">
+    <label class="label" for="Date">Ngày</label>
+    <input type="date" id="Date" name="Date" value="@Model.Date.ToString("yyyy-MM-dd")" class="input" />
+    <button type="submit" class="btn btn--secondary btn--sm">Xem</button>
+    @if (Model.IsToday)
+    {
+        <span class="badge badge--success">
+            @Model.StaffOnlineNow nhân viên đang trực
+        </span>
+    }
+</form>
+
+<div class="data-surface">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nhân viên</th>
+                <th>Vào</th>
+                <th>Ra</th>
+                <th class="num">Thời gian trực</th>
+                <th class="num">Đơn đã nhận</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Rows.Any())
+            {
+                <tr>
+                    <td colspan="5"><p class="empty-state">Không có dữ liệu chấm công trong ngày này.</p></td>
+                </tr>
+            }
+            @foreach (var row in Model.Rows)
+            {
+                <tr>
+                    <td>
+                        @row.Name
+                        @if (row.HasOpenSession && Model.IsToday)
+                        {
+                            <span class="badge badge--success">đang trực</span>
+                        }
+                    </td>
+                    <td>@(row.FirstCheckIn?.ToString("HH:mm") ?? "—")</td>
+                    <td>
+                        @if (row.HasOpenSession && Model.IsToday)
+                        {
+                            <span class="muted">đang trực</span>
+                        }
+                        else
+                        {
+                            @(row.LastCheckOut?.ToString("HH:mm") ?? "—")
+                        }
+                    </td>
+                    <td class="num">
+                        @QuickBite.Pages.Admin.Staff.ReportModel.FormatDuration(row.TotalWorked)
+                        @if (row.HasOpenSession && Model.IsToday)
+                        {
+                            <span class="muted">(đang tính)</span>
+                        }
+                    </td>
+                    <td class="num">@row.AcceptedOrderCount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

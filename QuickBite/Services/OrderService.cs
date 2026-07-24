@@ -24,10 +24,6 @@ public sealed class OrderValidationException : Exception
     }
 }
 
-/// <summary>
-/// Tạo đơn từ dữ liệu tin cậy trong DB. Giá và trạng thái còn hàng trong Session
-/// không được sử dụng để quyết định đơn hàng cuối cùng.
-/// </summary>
 public sealed class OrderService
 {
     private const int MaximumQuantityPerItem = 99;
@@ -117,11 +113,11 @@ public sealed class OrderService
         _db.Orders.Add(order);
         await _db.SaveChangesAsync(cancellationToken);
 
-        // [D] SignalR (SDS 3.3): báo màn hình staff có đơn mới — chỉ bắn SAU khi DB lưu thành công
         await _hub.Clients.Group("staff").SendAsync("NewOrder", new
         {
             id = order.Id,
             customerName = order.CustomerName,
+            phone = order.Phone,
             total = order.Total,
             createdAt = order.CreatedAt,
             items = order.Items.Select(item => new
@@ -187,17 +183,7 @@ public sealed class OrderService
         order.Status = OrderStatus.Cancelled;
         await _db.SaveChangesAsync(cancellationToken);
 
-        // [D] SignalR (SDS 3.3): hủy đơn = một lần đổi trạng thái — báo cả khách (group order-{id}) lẫn staff
-        var statusPayload = new
-        {
-            orderId = order.Id,
-            status = (int)order.Status,
-            statusText = order.Status.ToDisplayText()
-        };
-        await _hub.Clients.Group($"order-{order.Id}")
-            .SendAsync("OrderStatusChanged", statusPayload, cancellationToken);
-        await _hub.Clients.Group("staff")
-            .SendAsync("OrderStatusChanged", statusPayload, cancellationToken);
+        await NotifyStatusChangedAsync(order, cancellationToken);
 
         return order;
     }
@@ -205,6 +191,7 @@ public sealed class OrderService
     public async Task<Order> ChangeStatusAsync(
         int orderId,
         OrderStatus nextStatus,
+        int? actorAccountId,
         CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(nextStatus))
@@ -227,10 +214,36 @@ public sealed class OrderService
                 $"sang {nextStatus.ToDisplayText()}.");
         }
 
+        if (nextStatus == OrderStatus.Accepted && order.AcceptedByAccountId is null)
+        {
+            order.AcceptedByAccountId = actorAccountId;
+            order.AcceptedAt = DateTime.Now;
+        }
+
         order.Status = nextStatus;
+
         await _db.SaveChangesAsync(cancellationToken);
 
+        await NotifyStatusChangedAsync(order, cancellationToken);
+
         return order;
+    }
+
+    private async Task NotifyStatusChangedAsync(
+        Order order,
+        CancellationToken cancellationToken)
+    {
+        var payload = new
+        {
+            orderId = order.Id,
+            status = (int)order.Status,
+            statusText = order.Status.ToDisplayText()
+        };
+
+        await _hub.Clients.Group($"order-{order.Id}")
+            .SendAsync("OrderStatusChanged", payload, cancellationToken);
+        await _hub.Clients.Group("staff")
+            .SendAsync("OrderStatusChanged", payload, cancellationToken);
     }
 
     private static void ValidateOrder(Order order)
