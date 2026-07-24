@@ -18,6 +18,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AllowAnonymousToPage("/Admin/Login");
     options.Conventions.AuthorizeFolder("/Admin/MenuItems", "AdminOnly");
     options.Conventions.AuthorizeFolder("/Admin/Staff", "AdminOnly");
+    options.Conventions.AuthorizeFolder("/Admin/Reports", "AdminOnly");
 });
 builder.Services.AddAuthorization(options =>
 {

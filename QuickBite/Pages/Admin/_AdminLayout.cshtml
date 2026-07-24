@@ -48,13 +48,13 @@
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 13.5a5 5 0 0 1 10 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
                         Nhân viên
                     </a>
+                    @* Doanh thu là thông tin nhạy cảm — chỉ chủ quán xem. Ẩn link ở đây,
+                       chặn thật bằng policy "AdminOnly" trên /Admin/Reports trong Program.cs. *@
+                    <a class="admin-rail__link" asp-page="/Admin/Reports/Revenue" aria-current="@(isReports ? "page" : null)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 13.5h11M4 13.5V9m4 4.5V5.5m4 8V3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
+                        Doanh thu
+                    </a>
                 }
-                @* Doanh thu (Dev D) — giữ ngoài @if(isAdmin) để bảo toàn hành vi bản gốc:
-                   mọi tài khoản đã đăng nhập đều thấy. Xem ghi chú bảo mật ở phần trả lời. *@
-                <a class="admin-rail__link" asp-page="/Admin/Reports/Revenue" aria-current="@(isReports ? "page" : null)">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 13.5h11M4 13.5V9m4 4.5V5.5m4 8V3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
-                    Doanh thu
-                </a>
             </nav>
 
             <div class="admin-rail__foot">
