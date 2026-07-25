@@ -17,12 +17,6 @@ public class CreateModel : PageModel
         _context = context;
     }
 
-    /// <summary>
-    /// Model riêng cho form, KHÔNG bind thẳng vào entity <see cref="Account"/>.
-    /// Lý do: entity có <c>PasswordHash</c> và <c>IsActive</c> — bind thẳng thì kẻ xấu
-    /// có thể thêm field vào form để tự đặt hash hoặc bật quyền (over-posting).
-    /// Form chỉ nhận đúng những gì nó cần.
-    /// </summary>
     public sealed class InputModel
     {
         [Required(ErrorMessage = "Vui lòng nhập tên đăng nhập")]
@@ -64,8 +58,6 @@ public class CreateModel : PageModel
 
         var username = Input.Username.Trim();
 
-        // Cột Username có unique index — không kiểm tra trước thì người dùng nhận
-        // DbUpdateException khó hiểu thay vì thông báo lỗi tử tế trên form.
         var taken = await _context.Accounts
             .AnyAsync(a => a.Username == username, cancellationToken);
 
@@ -83,8 +75,6 @@ public class CreateModel : PageModel
             IsActive = true
         };
 
-        // Cùng thuật toán với lúc đăng nhập (PasswordHasher<Account>) — đổi kiểu generic
-        // ở một trong hai nơi là verify sẽ luôn thất bại.
         account.PasswordHash = new PasswordHasher<Account>()
             .HashPassword(account, Input.Password);
 

@@ -45,8 +45,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 var app = builder.Build();
 
-// Dọn ca làm còn treo từ lần chạy trước: nếu server tắt/restart khi đang có người
-// online, các WorkSession của họ vẫn CheckOutAt = null. Đóng hết trước khi nhận request.
 using (var scope = app.Services.CreateScope())
 {
     var workSessions = scope.ServiceProvider.GetRequiredService<WorkSessionService>();

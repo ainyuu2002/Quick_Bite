@@ -26,7 +26,6 @@ public class IndexModel : PageModel
         _connectionTracker = connectionTracker;
     }
 
-    /// <summary>Số nhân viên đang trực lúc trang được render (JS cập nhật tiếp qua SignalR).</summary>
     public int StaffOnline => _connectionTracker.StaffOnline;
 
     public PagedResult<Order> Result { get; set; } = default!;
