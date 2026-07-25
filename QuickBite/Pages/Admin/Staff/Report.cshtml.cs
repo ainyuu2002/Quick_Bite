@@ -17,7 +17,6 @@ public class ReportModel : PageModel
         _connectionTracker = connectionTracker;
     }
 
-    /// <summary>Một dòng báo cáo cho một nhân viên trong ngày đã chọn.</summary>
     public sealed record ReportRow(
         int AccountId,
         string Name,
@@ -39,15 +38,12 @@ public class ReportModel : PageModel
         var dayStart = Date.Date;
         var dayEnd = dayStart.AddDays(1);
 
-        // Ca làm có giờ VÀO trong ngày. Ca vắt qua nửa đêm được tính theo ngày bắt đầu
-        // — đủ dùng cho demo; không bổ đôi ca quanh mốc 00:00.
         var sessions = await _context.WorkSessions
             .AsNoTracking()
             .Include(w => w.Account)
             .Where(w => w.CheckInAt >= dayStart && w.CheckInAt < dayEnd)
             .ToListAsync(cancellationToken);
 
-        // Đếm đơn đã nhận trong ngày, gom sẵn theo nhân viên để tránh N+1.
         var orderCounts = await _context.Orders
             .AsNoTracking()
             .Where(o => o.AcceptedByAccountId != null
@@ -58,7 +54,6 @@ public class ReportModel : PageModel
 
         var now = DateTime.Now;
 
-        // Nhân viên xuất hiện trong báo cáo nếu có ca HOẶC có nhận đơn trong ngày.
         var accountIds = sessions.Select(s => s.AccountId)
             .Union(orderCounts.Keys)
             .ToHashSet();
@@ -68,7 +63,6 @@ public class ReportModel : PageModel
         {
             var mySessions = sessions.Where(s => s.AccountId == accountId).ToList();
 
-            // Ca đang mở tính thời lượng tới hiện tại (chỉ đúng khi xem báo cáo hôm nay).
             var total = mySessions.Aggregate(TimeSpan.Zero,
                 (sum, s) => sum + ((s.CheckOutAt ?? now) - s.CheckInAt));
 
@@ -82,7 +76,6 @@ public class ReportModel : PageModel
                 accountId,
                 name,
                 mySessions.Count == 0 ? null : mySessions.Min(s => s.CheckInAt),
-                // Còn ca đang mở thì "giờ ra" chưa xác định.
                 hasOpenSession || mySessions.Count == 0
                     ? null
                     : mySessions.Max(s => s.CheckOutAt),
@@ -97,11 +90,9 @@ public class ReportModel : PageModel
             .ToList();
     }
 
-    /// <summary>Số nhân viên đang trực ngay lúc này (chỉ ý nghĩa khi xem báo cáo hôm nay).</summary>
+   
     public int StaffOnlineNow => _connectionTracker.StaffOnline;
 
-    // Trường hợp hiếm: nhân viên có nhận đơn trong ngày nhưng không có ca nào (ví dụ dữ
-    // liệu seed). Lấy tên riêng để dòng không bị trống.
     private async Task<string> ResolveNameAsync(int accountId, CancellationToken cancellationToken)
     {
         var account = await _context.Accounts
