@@ -149,8 +149,12 @@
                             <div class="order-details__content">
                                 <dl class="order-meta">
                                     <div>
+                                        <dt>Hình thức</dt>
+                                        <dd>@order.OrderType.ToDisplayText()</dd>
+                                    </div>
+                                    <div>
                                         <dt>Địa chỉ giao hàng</dt>
-                                        <dd>@order.Address</dd>
+                                        <dd>@(order.OrderType == OrderType.Pickup ? "Nhận tại quán" : (order.Address ?? "—"))</dd>
                                     </div>
                                     <div>
                                         <dt>Phương thức thanh toán</dt>
@@ -194,7 +198,7 @@
 
                                 <div class="order-actions">
                                     @{
-                                        var nextStatuses = QuickBite.Pages.Admin.Orders.IndexModel.AdminNextStatuses(order.Status);
+                                        var nextStatuses = QuickBite.Pages.Admin.Orders.IndexModel.AdminNextStatuses(order.Status, order.OrderType);
                                     }
                                     @if (order.Status.IsTerminal())
                                     {

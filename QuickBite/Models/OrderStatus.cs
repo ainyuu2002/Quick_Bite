@@ -48,6 +48,28 @@ public static class OrderStatusExtensions
         _ => false
     };
 
+    public static bool CanTransitionTo(this OrderStatus current, OrderStatus next, OrderType orderType)
+    {
+        if (!current.CanTransitionTo(next))
+        {
+            return false;
+        }
+
+        if (orderType == OrderType.Pickup && next == OrderStatus.Delivering)
+        {
+            return false;
+        }
+
+        if (orderType == OrderType.Delivery
+            && current == OrderStatus.Ready
+            && next == OrderStatus.Completed)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     public static bool RequiresReason(this OrderStatus next)
         => next is OrderStatus.Rejected or OrderStatus.Cancelled
             or OrderStatus.DeliveryFailed or OrderStatus.NoShow;

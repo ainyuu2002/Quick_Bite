@@ -40,9 +40,9 @@ public class IndexModel : PageModel
 
     public IReadOnlyList<ReasonCatalog> Reasons { get; private set; } = [];
 
-    public static IReadOnlyList<OrderStatus> AdminNextStatuses(OrderStatus current)
+    public static IReadOnlyList<OrderStatus> AdminNextStatuses(OrderStatus current, OrderType orderType)
         => Enum.GetValues<OrderStatus>()
-            .Where(next => current.CanTransitionTo(next)
+            .Where(next => current.CanTransitionTo(next, orderType)
                 && next != OrderStatus.Expired
                 && next != OrderStatus.Cancelled)
             .ToList();

@@ -40,6 +40,11 @@ public sealed class IndexModel : PageModel
             ModelState.AddModelError(string.Empty, "Giỏ hàng đang trống. Vui lòng chọn món trước khi thanh toán.");
         }
 
+        if (Input.OrderType == OrderType.Delivery && string.IsNullOrWhiteSpace(Input.Address))
+        {
+            ModelState.AddModelError("Input.Address", "Vui lòng nhập địa chỉ giao hàng.");
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -51,8 +56,9 @@ public sealed class IndexModel : PageModel
                 new CreateOrderRequest(
                     Input.CustomerName,
                     Input.Phone,
-                    Input.Address,
+                    Input.OrderType == OrderType.Pickup ? null : Input.Address,
                     Input.Note,
+                    Input.OrderType,
                     Input.PaymentMethod!.Value,
                     Cart.Select(item => new CreateOrderItem(item.MenuItemId, item.Quantity)).ToArray()),
                 cancellationToken);
@@ -104,10 +110,12 @@ public sealed class IndexModel : PageModel
         [Display(Name = "Số điện thoại")]
         public string Phone { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Vui lòng nhập địa chỉ giao hàng.")]
+        [Display(Name = "Hình thức nhận hàng")]
+        public OrderType OrderType { get; set; } = OrderType.Delivery;
+
         [StringLength(500, ErrorMessage = "Địa chỉ không được vượt quá 500 ký tự.")]
         [Display(Name = "Địa chỉ giao hàng")]
-        public string Address { get; set; } = string.Empty;
+        public string? Address { get; set; }
 
         [StringLength(500, ErrorMessage = "Ghi chú không được vượt quá 500 ký tự.")]
         [Display(Name = "Ghi chú")]

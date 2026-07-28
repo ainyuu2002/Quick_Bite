@@ -13,8 +13,9 @@ public sealed record CreateOrderItem(int MenuItemId, int Quantity);
 public sealed record CreateOrderRequest(
     string CustomerName,
     string Phone,
-    string Address,
+    string? Address,
     string? Note,
+    OrderType OrderType,
     PaymentMethod PaymentMethod,
     IReadOnlyCollection<CreateOrderItem> Items);
 
@@ -27,7 +28,7 @@ public sealed class OrderValidationException : Exception
 
 public sealed class OrderService
 {
-    private const int MaximumQuantityPerItem = 99;
+    private const int MaximumQuantityPerItem = 10;
     private readonly AppDbContext _db;
     private readonly IHubContext<OrderHub> _hub;
     private readonly IOrderEventPublisher _events;
@@ -53,6 +54,16 @@ public sealed class OrderService
         if (!Enum.IsDefined(request.PaymentMethod))
         {
             throw new OrderValidationException("Phương thức thanh toán không hợp lệ.");
+        }
+
+        if (!Enum.IsDefined(request.OrderType))
+        {
+            throw new OrderValidationException("Loại đơn không hợp lệ.");
+        }
+
+        if (request.OrderType == OrderType.Delivery && string.IsNullOrWhiteSpace(request.Address))
+        {
+            throw new OrderValidationException("Đơn giao hàng cần có địa chỉ nhận.");
         }
 
         if (request.Items.Any(item => item.MenuItemId <= 0 || item.Quantity <= 0))
@@ -92,8 +103,11 @@ public sealed class OrderService
         {
             CustomerName = request.CustomerName?.Trim() ?? string.Empty,
             Phone = request.Phone?.Trim() ?? string.Empty,
-            Address = request.Address?.Trim() ?? string.Empty,
+            Address = request.OrderType == OrderType.Pickup
+                ? null
+                : request.Address?.Trim(),
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+            OrderType = request.OrderType,
             PaymentMethod = request.PaymentMethod,
             Status = OrderStatus.Pending,
             CreatedAt = DateTime.Now
@@ -213,7 +227,7 @@ public sealed class OrderService
             .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
 
-        if (!order.Status.CanTransitionTo(nextStatus))
+        if (!order.Status.CanTransitionTo(nextStatus, order.OrderType))
         {
             throw new OrderValidationException(
                 $"Không thể chuyển đơn từ {order.Status.ToDisplayText()} " +

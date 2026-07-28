@@ -71,4 +71,11 @@ Assert(!OrderStatus.Completed.RequiresReason(), "Completed không cần lý do."
 Assert(OrderStatus.Pending.CanBeCancelledByCustomer(), "Khách hủy được đơn Pending.");
 Assert(!OrderStatus.Confirmed.CanBeCancelledByCustomer(), "Khách không hủy được sau khi quán xác nhận.");
 
+Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.Delivering, OrderType.Delivery), "Đơn giao: Ready -> Delivering.");
+Assert(!OrderStatus.Ready.CanTransitionTo(OrderStatus.Completed, OrderType.Delivery), "Đơn giao không nhảy thẳng Ready -> Completed.");
+Assert(OrderStatus.Delivering.CanTransitionTo(OrderStatus.Completed, OrderType.Delivery), "Đơn giao: Delivering -> Completed.");
+Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.Completed, OrderType.Pickup), "Đơn Pickup: Ready -> Completed.");
+Assert(!OrderStatus.Ready.CanTransitionTo(OrderStatus.Delivering, OrderType.Pickup), "Đơn Pickup không có bước Delivering.");
+Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.NoShow, OrderType.Pickup), "Đơn Pickup: Ready -> NoShow.");
+
 Console.WriteLine("Order state machine v2 tests passed.");
