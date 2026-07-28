@@ -6,6 +6,7 @@ using QuickBite.Services;
 using QuickBite.Modules.Operations.Authorization;
 using QuickBite.Modules.Operations.MenuAvailability;
 using QuickBite.Modules.Operations.Store;
+using QuickBite.Modules.Operations.Workforce;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +52,7 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<WorkSessionService>();
 builder.Services.AddScoped<IStoreAvailabilityService, StoreAvailabilityService>();
 builder.Services.AddScoped<IMenuAvailabilityService, MenuAvailabilityService>();
+builder.Services.AddScoped<IWorkSessionApprovalService, WorkSessionApprovalService>();
 builder.Services.AddScoped<CustomerAccountService>();
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<LoyaltyService>();

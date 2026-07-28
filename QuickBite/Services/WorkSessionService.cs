@@ -39,7 +39,9 @@ public sealed class WorkSessionService
         // Ca gần nhất vừa đóng — nếu còn trong khoảng ân hạn thì mở lại chính nó,
         // coi như liền mạch (khoảng gap ngắn được tính luôn vào giờ trực).
         var recentSession = await _db.WorkSessions
-            .Where(w => w.AccountId == accountId && w.CheckOutAt != null)
+            .Where(w => w.AccountId == accountId
+                && w.CheckOutAt != null
+                && w.ApprovalStatus == WorkSessionApprovalStatus.Draft)
             .OrderByDescending(w => w.CheckOutAt)
             .FirstOrDefaultAsync(cancellationToken);
 

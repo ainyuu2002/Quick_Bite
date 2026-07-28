@@ -52,6 +52,12 @@ public class AppDbContext : DbContext
           .HasIndex(u => u.Username)
           .IsUnique();
 
+        mb.Entity<Account>()
+          .ToTable(table =>
+              table.HasCheckConstraint(
+                  "CK_Accounts_HourlyRate",
+                  "[HourlyRate] >= 0"));
+
         // Người nhận đơn: Restrict để không bao giờ mất dấu ai đã xử lý đơn cũ.
         // Muốn "xoá" nhân viên thì tắt Account.IsActive, không xoá cứng.
         mb.Entity<Order>()
@@ -69,6 +75,21 @@ public class AppDbContext : DbContext
         // Phục vụ báo cáo chấm công theo người + theo ngày.
         mb.Entity<WorkSession>()
           .HasIndex(w => new { w.AccountId, w.CheckInAt });
+
+        mb.Entity<WorkSession>()
+          .HasIndex(w => w.ApprovalStatus);
+
+        mb.Entity<WorkSession>()
+          .ToTable(table =>
+              table.HasCheckConstraint(
+                  "CK_WorkSessions_ApprovalStatus",
+                  "[ApprovalStatus] IN (0, 1)"));
+
+        mb.Entity<WorkSession>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(w => w.ApprovedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
 
         mb.Entity<StoreSetting>()
           .ToTable(table =>

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuickBite.Models;
 
@@ -25,6 +26,10 @@ public class Account
     public string? FullName { get; set; }
 
     public AccountRole Role { get; set; } = AccountRole.Staff;
+
+    /// <summary>Đơn giá hiện tại; được chụp lại vào WorkSession lúc Manager duyệt.</summary>
+    [Column(TypeName = "decimal(18,0)")]
+    public decimal HourlyRate { get; set; } = 25_000m;
 
     /// <summary>
     /// Tắt để khoá đăng nhập mà vẫn giữ nguyên lịch sử đơn đã nhận và ca làm đã chấm công

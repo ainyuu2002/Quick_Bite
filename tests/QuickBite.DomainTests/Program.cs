@@ -89,4 +89,17 @@ dailyQuota.SaleEndsAt = new TimeOnly(2, 0);
 Assert(dailyQuota.IsWithinSaleWindow(new TimeOnly(23, 0)), "Khung bán qua đêm phải hỗ trợ trước nửa đêm.");
 Assert(dailyQuota.IsWithinSaleWindow(new TimeOnly(1, 0)), "Khung bán qua đêm phải hỗ trợ sau nửa đêm.");
 
+var approvedSession = new WorkSession
+{
+    ApprovedCheckInAt = new DateTime(2026, 7, 28, 8, 0, 0),
+    ApprovedCheckOutAt = new DateTime(2026, 7, 28, 12, 30, 0),
+    ApprovedHourlyRate = 25_000m
+};
+Assert(
+    approvedSession.ApprovedDuration == TimeSpan.FromHours(4.5),
+    "Thời gian duyệt phải tính từ hai mốc đã chốt.");
+Assert(
+    approvedSession.ApprovedSalary == 112_500m,
+    "Lương phải bằng giờ đã duyệt nhân snapshot đơn giá.");
+
 Console.WriteLine("Admin order domain tests passed.");
