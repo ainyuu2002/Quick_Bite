@@ -55,7 +55,12 @@ public sealed class LoyaltyService
 
     public async Task AccrueAsync(Order order, CancellationToken cancellationToken = default)
     {
-        if (order.CustomerId is null)
+        var customerId = order.CustomerId
+            ?? await _db.Customers
+                .Where(c => c.Phone == order.Phone)
+                .Select(c => (int?)c.Id)
+                .SingleOrDefaultAsync(cancellationToken);
+        if (customerId is null)
         {
             return;
         }
@@ -76,7 +81,7 @@ public sealed class LoyaltyService
 
         _db.PointLedgers.Add(new PointLedger
         {
-            CustomerId = order.CustomerId.Value,
+            CustomerId = customerId.Value,
             Points = points,
             Type = PointEntryType.Earn,
             OrderId = order.Id,
