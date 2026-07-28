@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Models;
+using QuickBite.Services.Events;
 
 namespace QuickBite.Services;
 
@@ -29,11 +30,13 @@ public sealed class OrderService
     private const int MaximumQuantityPerItem = 99;
     private readonly AppDbContext _db;
     private readonly IHubContext<OrderHub> _hub;
+    private readonly IOrderEventPublisher _events;
 
-    public OrderService(AppDbContext db, IHubContext<OrderHub> hub)
+    public OrderService(AppDbContext db, IHubContext<OrderHub> hub, IOrderEventPublisher events)
     {
         _db = db;
         _hub = hub;
+        _events = events;
     }
 
     public async Task<Order> CreateOrderAsync(
@@ -165,6 +168,7 @@ public sealed class OrderService
     public async Task<Order> CancelOrderAsync(
         int orderId,
         string customerPhone,
+        string? reason = null,
         CancellationToken cancellationToken = default)
     {
         var normalizedPhone = customerPhone.Trim();
@@ -180,10 +184,15 @@ public sealed class OrderService
                 "Khách hàng chỉ có thể hủy đơn khi quán chưa xác nhận.");
         }
 
+        var trimmedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        var fromStatus = order.Status;
         order.Status = OrderStatus.Cancelled;
+        AddStatusHistory(order, fromStatus, OrderStatus.Cancelled, trimmedReason, null);
+
         await _db.SaveChangesAsync(cancellationToken);
 
         await NotifyStatusChangedAsync(order, cancellationToken);
+        await _events.PublishAsync(new OrderCancelled(order.Id, trimmedReason), cancellationToken);
 
         return order;
     }
@@ -192,6 +201,7 @@ public sealed class OrderService
         int orderId,
         OrderStatus nextStatus,
         int? actorAccountId,
+        string? reason = null,
         CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(nextStatus))
@@ -203,30 +213,71 @@ public sealed class OrderService
             .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
 
-        var isCancellation = nextStatus == OrderStatus.Cancelled
-            && order.Status.CanBeCancelledByStaff();
-        var isForwardTransition = order.Status.CanTransitionTo(nextStatus);
-
-        if (!isCancellation && !isForwardTransition)
+        if (!order.Status.CanTransitionTo(nextStatus))
         {
             throw new OrderValidationException(
                 $"Không thể chuyển đơn từ {order.Status.ToDisplayText()} " +
                 $"sang {nextStatus.ToDisplayText()}.");
         }
 
-        if (nextStatus == OrderStatus.Accepted && order.AcceptedByAccountId is null)
+        var trimmedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        if (nextStatus.RequiresReason() && trimmedReason is null)
+        {
+            throw new OrderValidationException(
+                $"Vui lòng chọn lý do khi chuyển đơn sang {nextStatus.ToDisplayText()}.");
+        }
+
+        if (nextStatus == OrderStatus.Confirmed && order.AcceptedByAccountId is null)
         {
             order.AcceptedByAccountId = actorAccountId;
             order.AcceptedAt = DateTime.Now;
         }
 
+        var fromStatus = order.Status;
         order.Status = nextStatus;
+        AddStatusHistory(order, fromStatus, nextStatus, trimmedReason, actorAccountId);
 
         await _db.SaveChangesAsync(cancellationToken);
 
         await NotifyStatusChangedAsync(order, cancellationToken);
+        await PublishStatusEventAsync(order, trimmedReason, cancellationToken);
 
         return order;
+    }
+
+    private void AddStatusHistory(
+        Order order,
+        OrderStatus fromStatus,
+        OrderStatus toStatus,
+        string? reason,
+        int? actorAccountId)
+    {
+        _db.OrderStatusHistories.Add(new OrderStatusHistory
+        {
+            OrderId = order.Id,
+            FromStatus = fromStatus,
+            ToStatus = toStatus,
+            Reason = reason,
+            ChangedByAccountId = actorAccountId,
+            ChangedAt = DateTime.Now
+        });
+    }
+
+    private Task PublishStatusEventAsync(Order order, string? reason, CancellationToken cancellationToken)
+    {
+        IOrderEvent? orderEvent = order.Status switch
+        {
+            OrderStatus.Confirmed => new OrderConfirmed(order.Id),
+            OrderStatus.Completed => new OrderCompleted(order.Id),
+            OrderStatus.Cancelled => new OrderCancelled(order.Id, reason),
+            OrderStatus.Rejected => new OrderRejected(order.Id, reason),
+            OrderStatus.Expired => new OrderExpired(order.Id),
+            _ => null
+        };
+
+        return orderEvent is null
+            ? Task.CompletedTask
+            : _events.PublishAsync(orderEvent, cancellationToken);
     }
 
     private async Task NotifyStatusChangedAsync(

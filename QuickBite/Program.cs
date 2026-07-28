@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Services;
+using QuickBite.Services.Events;
 using QuickBite.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +31,7 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<WorkSessionService>();
 builder.Services.AddScoped<IDiscountService, NoDiscountService>();
 builder.Services.AddScoped<ICustomerInfoService, DefaultCustomerInfoService>();
+builder.Services.AddScoped<IOrderEventPublisher, OrderEventPublisher>();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

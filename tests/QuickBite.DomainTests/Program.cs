@@ -27,32 +27,48 @@ using (var context = new AppDbContext(options))
 
 Console.WriteLine("EF model + seed validation passed.");
 
-Assert(
-    OrderStatus.Pending.CanTransitionTo(OrderStatus.Accepted),
-    "Pending phải chuyển được sang Accepted.");
-Assert(
-    !OrderStatus.Pending.CanTransitionTo(OrderStatus.Ready),
-    "Pending không được chuyển vượt cấp sang Ready.");
-Assert(
-    !OrderStatus.Accepted.CanTransitionTo(OrderStatus.Pending),
-    "Không được chuyển lùi trạng thái.");
+Assert(OrderStatus.Pending.CanTransitionTo(OrderStatus.Confirmed), "Pending -> Confirmed hợp lệ.");
+Assert(OrderStatus.Pending.CanTransitionTo(OrderStatus.Rejected), "Pending -> Rejected hợp lệ.");
+Assert(OrderStatus.Pending.CanTransitionTo(OrderStatus.Cancelled), "Pending -> Cancelled hợp lệ.");
+Assert(OrderStatus.Pending.CanTransitionTo(OrderStatus.Expired), "Pending -> Expired hợp lệ.");
+Assert(!OrderStatus.Pending.CanTransitionTo(OrderStatus.Preparing), "Pending không nhảy thẳng Preparing.");
+Assert(!OrderStatus.Pending.CanTransitionTo(OrderStatus.Ready), "Pending không nhảy vượt cấp Ready.");
 
-Assert(
-    OrderStatus.Pending.CanBeCancelledByStaff(),
-    "Admin phải được hủy đơn Pending.");
+Assert(OrderStatus.Confirmed.CanTransitionTo(OrderStatus.Preparing), "Confirmed -> Preparing.");
+Assert(!OrderStatus.Confirmed.CanTransitionTo(OrderStatus.Pending), "Không lùi Confirmed -> Pending.");
+Assert(OrderStatus.Preparing.CanTransitionTo(OrderStatus.Ready), "Preparing -> Ready.");
 
-foreach (var status in new[]
+Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.Delivering), "Ready -> Delivering (đơn giao).");
+Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.Completed), "Ready -> Completed (đơn Pickup).");
+Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.NoShow), "Ready -> NoShow.");
+Assert(OrderStatus.Delivering.CanTransitionTo(OrderStatus.Completed), "Delivering -> Completed.");
+Assert(OrderStatus.Delivering.CanTransitionTo(OrderStatus.DeliveryFailed), "Delivering -> DeliveryFailed.");
+
+foreach (var terminal in new[]
 {
-    OrderStatus.Accepted,
-    OrderStatus.Preparing,
-    OrderStatus.Ready,
     OrderStatus.Completed,
-    OrderStatus.Cancelled
+    OrderStatus.Cancelled,
+    OrderStatus.Rejected,
+    OrderStatus.Expired,
+    OrderStatus.DeliveryFailed,
+    OrderStatus.NoShow
 })
 {
-    Assert(
-        !status.CanBeCancelledByStaff(),
-        $"Admin không được hủy đơn ở trạng thái {status}.");
+    Assert(terminal.IsTerminal(), $"{terminal} phải là trạng thái kết thúc.");
+    foreach (var next in Enum.GetValues<OrderStatus>())
+    {
+        Assert(!terminal.CanTransitionTo(next), $"{terminal} là terminal, không được chuyển sang {next}.");
+    }
 }
 
-Console.WriteLine("Admin order domain tests passed.");
+Assert(OrderStatus.Rejected.RequiresReason(), "Rejected bắt buộc lý do.");
+Assert(OrderStatus.Cancelled.RequiresReason(), "Cancelled bắt buộc lý do.");
+Assert(OrderStatus.DeliveryFailed.RequiresReason(), "DeliveryFailed bắt buộc lý do.");
+Assert(OrderStatus.NoShow.RequiresReason(), "NoShow bắt buộc lý do.");
+Assert(!OrderStatus.Confirmed.RequiresReason(), "Confirmed không cần lý do.");
+Assert(!OrderStatus.Completed.RequiresReason(), "Completed không cần lý do.");
+
+Assert(OrderStatus.Pending.CanBeCancelledByCustomer(), "Khách hủy được đơn Pending.");
+Assert(!OrderStatus.Confirmed.CanBeCancelledByCustomer(), "Khách không hủy được sau khi quán xác nhận.");
+
+Console.WriteLine("Order state machine v2 tests passed.");

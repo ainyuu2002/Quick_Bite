@@ -193,42 +193,38 @@
                                 </div>
 
                                 <div class="order-actions">
-                                    @if (order.Status is >= OrderStatus.Pending and < OrderStatus.Completed)
-                                    {
-                                        var nextStatus = (OrderStatus)((int)order.Status + 1);
-                                        <form method="post" asp-page-handler="ChangeStatus">
-                                            <input type="hidden" name="orderId" value="@order.Id" />
-                                            <input type="hidden" name="nextStatus" value="@nextStatus" />
-                                            <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
-                                            <input type="hidden" name="search" value="@Model.Search" />
-                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
-                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
-                                            <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
-                                            <button class="btn btn--primary btn--sm" type="submit">
-                                                Chuyển sang @nextStatus.ToDisplayText()
-                                            </button>
-                                        </form>
+                                    @{
+                                        var nextStatuses = QuickBite.Pages.Admin.Orders.IndexModel.AdminNextStatuses(order.Status);
                                     }
-
-                                    @if (order.Status.CanBeCancelledByStaff())
-                                    {
-                                        <form method="post" asp-page-handler="ChangeStatus">
-                                            <input type="hidden" name="orderId" value="@order.Id" />
-                                            <input type="hidden" name="nextStatus" value="@OrderStatus.Cancelled" />
-                                            <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
-                                            <input type="hidden" name="search" value="@Model.Search" />
-                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
-                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
-                                            <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
-                                            <button class="btn btn--danger-quiet btn--sm" type="submit">
-                                                Hủy đơn
-                                            </button>
-                                        </form>
-                                    }
-
-                                    @if (order.Status is OrderStatus.Completed or OrderStatus.Cancelled)
+                                    @if (order.Status.IsTerminal())
                                     {
                                         <span class="badge badge--muted">Đơn đã kết thúc</span>
+                                    }
+                                    @foreach (var next in nextStatuses)
+                                    {
+                                        var needsReason = next.RequiresReason();
+                                        <form method="post" asp-page-handler="ChangeStatus" class="order-action-form">
+                                            <input type="hidden" name="orderId" value="@order.Id" />
+                                            <input type="hidden" name="nextStatus" value="@next" />
+                                            <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                            <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                            @if (needsReason)
+                                            {
+                                                <select name="reason" class="input" required aria-label="Lý do @next.ToDisplayText()">
+                                                    <option value="">— Chọn lý do —</option>
+                                                    @foreach (var reasonOption in Model.ReasonsFor(next))
+                                                    {
+                                                        <option value="@reasonOption.Text">@reasonOption.Text</option>
+                                                    }
+                                                </select>
+                                            }
+                                            <button class="btn @(needsReason ? "btn--danger-quiet" : "btn--primary") btn--sm" type="submit">
+                                                @next.ToDisplayText()
+                                            </button>
+                                        </form>
                                     }
                                 </div>
                             </div>

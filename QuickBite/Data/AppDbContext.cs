@@ -13,6 +13,8 @@ public class AppDbContext : DbContext
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
+    public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
+    public DbSet<ReasonCatalog> ReasonCatalogs => Set<ReasonCatalog>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -63,6 +65,20 @@ public class AppDbContext : DbContext
         mb.Entity<Order>()
           .Property(o => o.PaymentMethod)
           .HasDefaultValue(PaymentMethod.Cash);
+
+        mb.Entity<OrderStatusHistory>()
+          .HasOne(h => h.Order)
+          .WithMany()
+          .HasForeignKey(h => h.OrderId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        mb.Entity<OrderStatusHistory>()
+          .HasOne(h => h.ChangedByAccount)
+          .WithMany()
+          .HasForeignKey(h => h.ChangedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<OrderStatusHistory>().HasIndex(h => h.OrderId);
 
         SeedReferenceData(mb);
     }
@@ -120,5 +136,19 @@ public class AppDbContext : DbContext
             new MenuItem { Id = 28, CategoryId = 6, Name = "Đậu hũ sốt cà", Price = 25000, Description = "Đậu hũ non chiên sốt cà chua, hành lá", ImageUrl = "https://picsum.photos/seed/dauhusotca/400/300", IsAvailable = true, CreatedAt = seedDate },
             new MenuItem { Id = 29, CategoryId = 6, Name = "Gỏi cuốn chay (3 cuốn)", Price = 25000, Description = "Cuốn rau củ, bún, đậu hũ; chấm tương đậu phộng", ImageUrl = "https://picsum.photos/seed/goicuonchay/400/300", IsAvailable = true, CreatedAt = seedDate },
             new MenuItem { Id = 30, CategoryId = 6, Name = "Nấm xào sả ớt", Price = 30000, Description = "Nấm bào ngư xào sả ớt cay nhẹ, ăn kèm cơm trắng", ImageUrl = "https://picsum.photos/seed/namxao/400/300", IsAvailable = true, CreatedAt = seedDate });
+
+        mb.Entity<ReasonCatalog>().HasData(
+            new ReasonCatalog { Id = 1, Kind = ReasonKind.Reject, Text = "Hết nguyên liệu", DisplayOrder = 1, IsActive = true },
+            new ReasonCatalog { Id = 2, Kind = ReasonKind.Reject, Text = "Ngoài phạm vi giao", DisplayOrder = 2, IsActive = true },
+            new ReasonCatalog { Id = 3, Kind = ReasonKind.Reject, Text = "Quán quá tải", DisplayOrder = 3, IsActive = true },
+            new ReasonCatalog { Id = 4, Kind = ReasonKind.Reject, Text = "Nghi ngờ đơn ảo", DisplayOrder = 4, IsActive = true },
+            new ReasonCatalog { Id = 5, Kind = ReasonKind.Cancel, Text = "Đặt nhầm", DisplayOrder = 1, IsActive = true },
+            new ReasonCatalog { Id = 6, Kind = ReasonKind.Cancel, Text = "Đổi ý không đặt nữa", DisplayOrder = 2, IsActive = true },
+            new ReasonCatalog { Id = 7, Kind = ReasonKind.Cancel, Text = "Chờ quá lâu", DisplayOrder = 3, IsActive = true },
+            new ReasonCatalog { Id = 8, Kind = ReasonKind.DeliveryFailed, Text = "Khách không nghe máy", DisplayOrder = 1, IsActive = true },
+            new ReasonCatalog { Id = 9, Kind = ReasonKind.DeliveryFailed, Text = "Địa chỉ sai hoặc không tìm thấy", DisplayOrder = 2, IsActive = true },
+            new ReasonCatalog { Id = 10, Kind = ReasonKind.DeliveryFailed, Text = "Khách từ chối nhận hàng", DisplayOrder = 3, IsActive = true },
+            new ReasonCatalog { Id = 11, Kind = ReasonKind.NoShow, Text = "Khách không đến lấy", DisplayOrder = 1, IsActive = true },
+            new ReasonCatalog { Id = 12, Kind = ReasonKind.NoShow, Text = "Không liên lạc được với khách", DisplayOrder = 2, IsActive = true });
     }
 }

@@ -38,6 +38,23 @@ public class IndexModel : PageModel
 
     public string SortDir { get; private set; } = "desc";
 
+    public IReadOnlyList<ReasonCatalog> Reasons { get; private set; } = [];
+
+    public static IReadOnlyList<OrderStatus> AdminNextStatuses(OrderStatus current)
+        => Enum.GetValues<OrderStatus>()
+            .Where(next => current.CanTransitionTo(next)
+                && next != OrderStatus.Expired
+                && next != OrderStatus.Cancelled)
+            .ToList();
+
+    public IReadOnlyList<ReasonCatalog> ReasonsFor(OrderStatus status)
+    {
+        var kind = ReasonKindExtensions.ForStatus(status);
+        return kind is null
+            ? []
+            : Reasons.Where(reason => reason.Kind == kind).ToList();
+    }
+
     public async Task OnGetAsync(
         OrderStatus status = OrderStatus.Pending,
         string? search = null,
@@ -49,6 +66,13 @@ public class IndexModel : PageModel
         Search = search;
         SortBy = sortBy == "total" ? "total" : "date";
         SortDir = sortDir == "asc" ? "asc" : "desc";
+
+        Reasons = await _context.ReasonCatalogs
+            .AsNoTracking()
+            .Where(reason => reason.IsActive)
+            .OrderBy(reason => reason.Kind)
+            .ThenBy(reason => reason.DisplayOrder)
+            .ToListAsync();
 
         var query = _context.Orders
             .AsNoTracking()
@@ -80,6 +104,7 @@ public class IndexModel : PageModel
     public async Task<IActionResult> OnPostChangeStatusAsync(
         int orderId,
         OrderStatus nextStatus,
+        string? reason = null,
         OrderStatus currentStatus = OrderStatus.Pending,
         string? search = null,
         string sortBy = "date",
@@ -105,6 +130,7 @@ public class IndexModel : PageModel
                 orderId,
                 nextStatus,
                 actorAccountId,
+                reason,
                 cancellationToken);
 
             TempData["SuccessMessage"] =
