@@ -15,7 +15,10 @@ public sealed record CreateOrderRequest(
     string Address,
     string? Note,
     PaymentMethod PaymentMethod,
-    IReadOnlyCollection<CreateOrderItem> Items);
+    IReadOnlyCollection<CreateOrderItem> Items,
+    int? CustomerId = null,
+    string? PromotionCode = null,
+    string? VoucherCode = null);
 
 public sealed class OrderValidationException : Exception
 {
@@ -29,11 +32,19 @@ public sealed class OrderService
     private const int MaximumQuantityPerItem = 99;
     private readonly AppDbContext _db;
     private readonly IHubContext<OrderHub> _hub;
+    private readonly IDiscountService _discounts;
+    private readonly IOrderEvents _events;
 
-    public OrderService(AppDbContext db, IHubContext<OrderHub> hub)
+    public OrderService(
+        AppDbContext db,
+        IHubContext<OrderHub> hub,
+        IDiscountService discounts,
+        IOrderEvents events)
     {
         _db = db;
         _hub = hub;
+        _discounts = discounts;
+        _events = events;
     }
 
     public async Task<Order> CreateOrderAsync(
@@ -109,9 +120,23 @@ public sealed class OrderService
             });
         }
 
-        order.Total = order.Items.Sum(item => item.LineTotal);
+        var itemsTotal = order.Items.Sum(item => item.LineTotal);
+        var quote = await _discounts.QuoteAsync(
+            order.Phone,
+            request.CustomerId,
+            itemsTotal,
+            request.PromotionCode,
+            request.VoucherCode,
+            cancellationToken);
+
+        order.CustomerId = request.CustomerId;
+        order.PromotionId = quote.Promotion?.Id;
+        order.VoucherId = quote.Voucher?.Id;
+        order.DiscountAmount = quote.DiscountAmount;
+        order.Total = itemsTotal - quote.DiscountAmount;
         _db.Orders.Add(order);
         await _db.SaveChangesAsync(cancellationToken);
+        await _discounts.CommitAsync(order, quote, cancellationToken);
 
         await _hub.Clients.Group("staff").SendAsync("NewOrder", new
         {
@@ -183,6 +208,7 @@ public sealed class OrderService
         order.Status = OrderStatus.Cancelled;
         await _db.SaveChangesAsync(cancellationToken);
 
+        await _events.OrderCancelledAsync(order, cancellationToken);
         await NotifyStatusChangedAsync(order, cancellationToken);
 
         return order;
@@ -223,6 +249,15 @@ public sealed class OrderService
         order.Status = nextStatus;
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        if (nextStatus == OrderStatus.Completed)
+        {
+            await _events.OrderCompletedAsync(order, cancellationToken);
+        }
+        else if (nextStatus == OrderStatus.Cancelled)
+        {
+            await _events.OrderCancelledAsync(order, cancellationToken);
+        }
 
         await NotifyStatusChangedAsync(order, cancellationToken);
 
