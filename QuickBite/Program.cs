@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Services;
-using QuickBite.Models;
+using QuickBite.Modules.Operations.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,20 +14,28 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder("/Admin");
-    options.Conventions.AuthorizeFolder("/Staff");
     options.Conventions.AllowAnonymousToPage("/Admin/Login");
-    options.Conventions.AuthorizeFolder("/Admin/MenuItems", "AdminOnly");
-    options.Conventions.AuthorizeFolder("/Admin/Staff", "AdminOnly");
-    options.Conventions.AuthorizeFolder("/Admin/Reports", "AdminOnly");
-    options.Conventions.AuthorizeFolder("/Admin/Promotions", "AdminOnly");
+    options.Conventions.AuthorizeFolder("/Admin/Orders", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder("/Staff", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder("/Admin/MenuItems", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Staff", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Reports", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Promotions", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Complaints", InternalPolicies.ReceiveOrders);
     options.Conventions.AuthorizeFolder("/Account", CustomerAuth.Policy);
     options.Conventions.AllowAnonymousToPage("/Account/Login");
     options.Conventions.AllowAnonymousToPage("/Account/Register");
 });
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole(nameof(AccountRole.Admin)));
+    options.AddPolicy(InternalPolicies.ManagerOnly, policy =>
+        policy.RequireRole(InternalRoles.Manager));
+    options.AddPolicy(InternalPolicies.ReceiveOrders, policy =>
+        policy.RequireRole(InternalRoles.Manager, InternalRoles.Staff));
+    options.AddPolicy(InternalPolicies.OperateKitchen, policy =>
+        policy.RequireRole(InternalRoles.Manager, InternalRoles.Kitchen));
+    options.AddPolicy(InternalPolicies.DeliverOrders, policy =>
+        policy.RequireRole(InternalRoles.Manager, InternalRoles.Shipper));
     options.AddPolicy(CustomerAuth.Policy, policy => policy
         .AddAuthenticationSchemes(CustomerAuth.Scheme)
         .RequireAuthenticatedUser());
