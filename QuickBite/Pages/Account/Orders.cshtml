@@ -1,0 +1,81 @@
+@page "/Account/Orders"
+@namespace QuickBite.Pages.CustomerAccount
+@model QuickBite.Pages.CustomerAccount.OrdersModel
+@using QuickBite.Models
+@{
+    ViewData["Title"] = "Lịch sử đơn hàng";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Lịch sử đơn hàng</h1>
+        <p class="text-muted mb-0">Đặt lại món cũ chỉ với một chạm.</p>
+    </div>
+    <a asp-page="/Account/Index" class="btn btn-outline-secondary">Về trang tài khoản</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert alert-success">@Model.Message</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+@if (Model.Orders.Count == 0)
+{
+    <div class="text-center border rounded p-5 bg-light">
+        <h2 class="h4">Bạn chưa có đơn hàng nào</h2>
+        <p class="text-muted">Ghé thực đơn và đặt món đầu tiên nhé.</p>
+        <a asp-page="/Menu/Index" class="btn btn-primary">Xem thực đơn</a>
+    </div>
+}
+else
+{
+    @foreach (var order in Model.Orders)
+    {
+        <div class="card shadow-sm mb-3">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                    <div>
+                        <h2 class="h5 mb-1">
+                            Đơn #@order.Id
+                            <span class="badge @(order.Status == OrderStatus.Cancelled ? "bg-danger" : order.Status == OrderStatus.Completed ? "bg-success" : "bg-primary") ms-1">
+                                @order.Status.ToDisplayText()
+                            </span>
+                        </h2>
+                        <small class="text-muted">Đặt lúc @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                    </div>
+                    <div class="text-end">
+                        @if (order.DiscountAmount > 0)
+                        {
+                            <div><small class="text-muted">Đã giảm @order.DiscountAmount.ToString("N0") đ</small></div>
+                        }
+                        <strong class="text-primary fs-5">@order.Total.ToString("N0") đ</strong>
+                    </div>
+                </div>
+
+                <ul class="list-unstyled text-muted small mt-2 mb-3">
+                    @foreach (var item in order.Items)
+                    {
+                        <li>@(item.MenuItem?.Name ?? $"Món #{item.MenuItemId}") × @item.Quantity</li>
+                    }
+                </ul>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <form method="post" asp-page-handler="Reorder">
+                        <input type="hidden" name="orderId" value="@order.Id" />
+                        <button type="submit" class="btn btn-sm btn-primary">Đặt lại đơn này</button>
+                    </form>
+                    @if (order.Status == OrderStatus.Completed)
+                    {
+                        <a asp-page="/Orders/Feedback" asp-route-orderId="@order.Id"
+                           class="btn btn-sm btn-outline-primary">Đánh giá / Phản ánh</a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}

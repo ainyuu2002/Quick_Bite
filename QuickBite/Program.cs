@@ -19,15 +19,28 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Admin/MenuItems", "AdminOnly");
     options.Conventions.AuthorizeFolder("/Admin/Staff", "AdminOnly");
     options.Conventions.AuthorizeFolder("/Admin/Reports", "AdminOnly");
+    options.Conventions.AuthorizeFolder("/Admin/Promotions", "AdminOnly");
+    options.Conventions.AuthorizeFolder("/Account", CustomerAuth.Policy);
+    options.Conventions.AllowAnonymousToPage("/Account/Login");
+    options.Conventions.AllowAnonymousToPage("/Account/Register");
 });
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole(nameof(AccountRole.Admin)));
+    options.AddPolicy(CustomerAuth.Policy, policy => policy
+        .AddAuthenticationSchemes(CustomerAuth.Scheme)
+        .RequireAuthenticatedUser());
 });
 builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<WorkSessionService>();
+builder.Services.AddScoped<CustomerAccountService>();
+builder.Services.AddScoped<OtpService>();
+builder.Services.AddScoped<LoyaltyService>();
+builder.Services.AddScoped<ComplaintService>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
+builder.Services.AddScoped<IOrderEvents, RetentionOrderEvents>();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -41,6 +54,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.LoginPath = "/Admin/Login";
         options.AccessDeniedPath = "/Admin/AccessDenied";
+    })
+    .AddCookie(CustomerAuth.Scheme, options =>
+    {
+        options.Cookie.Name = "QuickBite.Customer";
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/Login";
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
     });
 
 var app = builder.Build();

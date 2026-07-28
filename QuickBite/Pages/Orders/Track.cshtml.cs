@@ -12,11 +12,16 @@ public sealed class TrackModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly OrderService _orderService;
+    private readonly CustomerAccountService _accounts;
 
-    public TrackModel(AppDbContext db, OrderService orderService)
+    public TrackModel(
+        AppDbContext db,
+        OrderService orderService,
+        CustomerAccountService accounts)
     {
         _db = db;
         _orderService = orderService;
+        _accounts = accounts;
     }
 
     [BindProperty]
@@ -30,6 +35,12 @@ public sealed class TrackModel : PageModel
 
     public bool Created { get; private set; }
 
+    public bool SuggestRegistration { get; private set; }
+
+    public int PotentialPoints { get; private set; }
+
+    public string RegistrationPhone { get; private set; } = string.Empty;
+
     [TempData]
     public string? ErrorMessage { get; set; }
 
@@ -40,6 +51,19 @@ public sealed class TrackModel : PageModel
     {
         Created = created;
         await LoadAuthorizedOrderAsync(cancellationToken);
+
+        if (Created && Orders.Count > 0)
+        {
+            var phone = Orders[0].Phone;
+            var isMember = await CustomerAuth.GetCustomerIdAsync(HttpContext) is not null
+                || await _accounts.IsPhoneRegisteredAsync(phone, cancellationToken);
+            if (!isMember)
+            {
+                SuggestRegistration = true;
+                RegistrationPhone = phone;
+                PotentialPoints = LoyaltyService.PointsFor(Orders[0].Total);
+            }
+        }
     }
 
     public async Task<IActionResult> OnPostLookupAsync(CancellationToken cancellationToken)
