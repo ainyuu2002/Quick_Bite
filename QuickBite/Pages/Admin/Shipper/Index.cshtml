@@ -1,0 +1,79 @@
+@page
+@model QuickBite.Pages.Admin.Shipper.IndexModel
+@using QuickBite.Models
+@{
+    ViewData["Title"] = "Shipper";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Đơn giao</h1>
+        <p class="page-description">Đơn sẵn sàng và đang giao — cập nhật kết quả giao hàng.</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert--danger" role="alert">@errorMessage</div>
+}
+
+<div class="role-board" data-role-board="shipper">
+    @if (Model.Board.Count == 0)
+    {
+        <p class="empty-state">Chưa có đơn nào cần giao.</p>
+    }
+    @foreach (var order in Model.Board)
+    {
+        <article class="ticket">
+            <header class="ticket__head">
+                <span class="order-id">#@order.Id</span>
+                <span class="badge badge--muted">@order.Status.ToDisplayText()</span>
+            </header>
+            <dl class="ticket__meta">
+                <div><dt>Khách</dt><dd>@order.CustomerName</dd></div>
+                <div><dt>SĐT</dt><dd>@order.Phone</dd></div>
+                <div><dt>Địa chỉ</dt><dd>@order.Address</dd></div>
+                <div><dt>Tổng tiền</dt><dd>@order.Total.ToString("N0") đ</dd></div>
+            </dl>
+            <div class="ticket__actions">
+                @if (order.Status == OrderStatus.Ready)
+                {
+                    <form method="post" asp-page-handler="Advance">
+                        <input type="hidden" name="orderId" value="@order.Id" />
+                        <input type="hidden" name="nextStatus" value="@OrderStatus.Delivering" />
+                        <button class="btn btn--primary btn--sm" type="submit">Nhận giao</button>
+                    </form>
+                }
+                else
+                {
+                    <form method="post" asp-page-handler="Advance">
+                        <input type="hidden" name="orderId" value="@order.Id" />
+                        <input type="hidden" name="nextStatus" value="@OrderStatus.Completed" />
+                        <button class="btn btn--primary btn--sm" type="submit">Giao thành công</button>
+                    </form>
+                    <form method="post" asp-page-handler="Advance" class="ticket__fail">
+                        <input type="hidden" name="orderId" value="@order.Id" />
+                        <input type="hidden" name="nextStatus" value="@OrderStatus.DeliveryFailed" />
+                        <select name="reason" class="input" required aria-label="Lý do giao thất bại">
+                            <option value="">— Lý do thất bại —</option>
+                            @foreach (var reason in Model.FailReasons)
+                            {
+                                <option value="@reason.Text">@reason.Text</option>
+                            }
+                        </select>
+                        <button class="btn btn--danger-quiet btn--sm" type="submit">Giao thất bại</button>
+                    </form>
+                }
+            </div>
+        </article>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/role-board.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,66 @@
+@page
+@model QuickBite.Pages.Admin.Kitchen.IndexModel
+@using QuickBite.Models
+@{
+    ViewData["Title"] = "Bếp";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Hàng đợi bếp</h1>
+        <p class="page-description">Món cần nấu — bấm cập nhật khi bắt đầu và khi xong.</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert--danger" role="alert">@errorMessage</div>
+}
+
+<div class="role-board" data-role-board="kitchen">
+    @if (Model.Queue.Count == 0)
+    {
+        <p class="empty-state">Chưa có món nào cần nấu.</p>
+    }
+    @foreach (var order in Model.Queue)
+    {
+        <article class="ticket">
+            <header class="ticket__head">
+                <span class="order-id">#@order.Id</span>
+                <span class="badge badge--muted">@order.Status.ToDisplayText()</span>
+            </header>
+            <ul class="ticket__items">
+                @foreach (var item in order.Items)
+                {
+                    <li><strong>@item.Quantity×</strong> @(item.MenuItem?.Name ?? $"Món #{item.MenuItemId}")</li>
+                }
+            </ul>
+            @if (!string.IsNullOrWhiteSpace(order.Note))
+            {
+                <p class="ticket__note">Ghi chú: @order.Note</p>
+            }
+            <form method="post" asp-page-handler="Advance" class="ticket__action">
+                <input type="hidden" name="orderId" value="@order.Id" />
+                @if (order.Status == OrderStatus.Confirmed)
+                {
+                    <input type="hidden" name="nextStatus" value="@OrderStatus.Preparing" />
+                    <button class="btn btn--primary btn--sm" type="submit">Bắt đầu nấu</button>
+                }
+                else
+                {
+                    <input type="hidden" name="nextStatus" value="@OrderStatus.Ready" />
+                    <button class="btn btn--primary btn--sm" type="submit">Xong món</button>
+                }
+            </form>
+        </article>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/role-board.js" asp-append-version="true"></script>
+}

@@ -38,6 +38,14 @@ namespace QuickBite.Hubs
             await Clients.Group("staff").SendAsync("StaffOnlineChanged", _tracker.StaffOnline);
         }
 
+        [Authorize]
+        public Task JoinKitchen()
+            => Groups.AddToGroupAsync(Context.ConnectionId, "kitchen");
+
+        [Authorize]
+        public Task JoinShipper()
+            => Groups.AddToGroupAsync(Context.ConnectionId, "shipper");
+
         public Task WatchOrder(int orderId)
             => Groups.AddToGroupAsync(Context.ConnectionId, $"order-{orderId}");
 

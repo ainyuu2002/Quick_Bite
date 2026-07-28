@@ -163,4 +163,45 @@ public class IndexModel : PageModel
             pageNumber
         });
     }
+
+    public async Task<IActionResult> OnPostUpdateContactAsync(
+        int orderId,
+        string customerName,
+        string phone,
+        string? address,
+        OrderStatus currentStatus = OrderStatus.Pending,
+        string? search = null,
+        string sortBy = "date",
+        string sortDir = "desc",
+        int pageNumber = 1,
+        CancellationToken cancellationToken = default)
+    {
+        currentStatus = Enum.IsDefined(currentStatus) ? currentStatus : OrderStatus.Pending;
+        sortBy = sortBy == "total" ? "total" : "date";
+        sortDir = sortDir == "asc" ? "asc" : "desc";
+        pageNumber = Math.Max(1, pageNumber);
+
+        try
+        {
+            await _orderService.UpdateContactAsync(orderId, customerName, phone, address, cancellationToken);
+            TempData["SuccessMessage"] = $"Đã cập nhật thông tin liên hệ đơn #{orderId}.";
+        }
+        catch (OrderValidationException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+        catch (KeyNotFoundException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToPage(new
+        {
+            status = currentStatus,
+            search,
+            sortBy,
+            sortDir,
+            pageNumber
+        });
+    }
 }

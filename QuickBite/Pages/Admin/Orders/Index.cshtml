@@ -196,6 +196,34 @@
                                     </table>
                                 </div>
 
+                                @if (order.Status == OrderStatus.Pending)
+                                {
+                                    <details class="contact-edit">
+                                        <summary>Sửa thông tin liên hệ</summary>
+                                        <form method="post" asp-page-handler="UpdateContact" class="contact-edit__form">
+                                            <input type="hidden" name="orderId" value="@order.Id" />
+                                            <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                            <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                            <label>Tên khách
+                                                <input class="input" name="customerName" value="@order.CustomerName" required />
+                                            </label>
+                                            <label>Số điện thoại
+                                                <input class="input" name="phone" value="@order.Phone" required />
+                                            </label>
+                                            @if (order.OrderType == OrderType.Delivery)
+                                            {
+                                                <label>Địa chỉ
+                                                    <input class="input" name="address" value="@order.Address" required />
+                                                </label>
+                                            }
+                                            <button class="btn btn--secondary btn--sm" type="submit">Lưu liên hệ</button>
+                                        </form>
+                                    </details>
+                                }
+
                                 <div class="order-actions">
                                     @{
                                         var nextStatuses = QuickBite.Pages.Admin.Orders.IndexModel.AdminNextStatuses(order.Status, order.OrderType);

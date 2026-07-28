@@ -20,11 +20,29 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Admin/MenuItems", "AdminOnly");
     options.Conventions.AuthorizeFolder("/Admin/Staff", "AdminOnly");
     options.Conventions.AuthorizeFolder("/Admin/Reports", "AdminOnly");
+    options.Conventions.AuthorizeFolder("/Admin/Orders", "StaffAccess");
+    options.Conventions.AuthorizeFolder("/Admin/Kitchen", "KitchenAccess");
+    options.Conventions.AuthorizeFolder("/Admin/Shipper", "ShipperAccess");
 });
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole(nameof(AccountRole.Admin)));
+        policy.RequireRole(nameof(AccountRole.Admin), nameof(AccountRole.Manager)));
+    options.AddPolicy("StaffAccess", policy =>
+        policy.RequireRole(
+            nameof(AccountRole.Admin),
+            nameof(AccountRole.Manager),
+            nameof(AccountRole.Staff)));
+    options.AddPolicy("KitchenAccess", policy =>
+        policy.RequireRole(
+            nameof(AccountRole.Admin),
+            nameof(AccountRole.Manager),
+            nameof(AccountRole.Kitchen)));
+    options.AddPolicy("ShipperAccess", policy =>
+        policy.RequireRole(
+            nameof(AccountRole.Admin),
+            nameof(AccountRole.Manager),
+            nameof(AccountRole.Shipper)));
 });
 builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddScoped<OrderService>();

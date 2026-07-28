@@ -2,11 +2,11 @@ namespace QuickBite.Models;
 
 public enum AccountRole
 {
-    /// <summary>Chủ quán: toàn quyền — quản lý món ăn, quản lý tài khoản, xử lý đơn.</summary>
     Admin = 0,
-
-    /// <summary>Nhân viên: chỉ xử lý đơn hàng.</summary>
-    Staff = 1
+    Staff = 1,
+    Kitchen = 2,
+    Shipper = 3,
+    Manager = 4
 }
 
 public static class AccountRoleExtensions
@@ -15,6 +15,9 @@ public static class AccountRoleExtensions
     {
         AccountRole.Admin => "Chủ quán",
         AccountRole.Staff => "Nhân viên",
+        AccountRole.Kitchen => "Bếp",
+        AccountRole.Shipper => "Shipper",
+        AccountRole.Manager => "Quản lý",
         _ => role.ToString()
     };
 }

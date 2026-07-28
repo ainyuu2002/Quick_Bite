@@ -307,8 +307,56 @@ public sealed class OrderService
 
         await _hub.Clients.Group($"order-{order.Id}")
             .SendAsync("OrderStatusChanged", payload, cancellationToken);
-        await _hub.Clients.Group("staff")
-            .SendAsync("OrderStatusChanged", payload, cancellationToken);
+
+        foreach (var roleGroup in new[] { "staff", "kitchen", "shipper" })
+        {
+            await _hub.Clients.Group(roleGroup)
+                .SendAsync("OrderStatusChanged", payload, cancellationToken);
+        }
+    }
+
+    public async Task<Order> UpdateContactAsync(
+        int orderId,
+        string customerName,
+        string phone,
+        string? address,
+        CancellationToken cancellationToken = default)
+    {
+        var order = await _db.Orders
+            .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
+
+        if (order.Status != OrderStatus.Pending)
+        {
+            throw new OrderValidationException(
+                "Chỉ sửa được thông tin liên hệ khi đơn còn chờ xác nhận.");
+        }
+
+        var trimmedName = customerName?.Trim();
+        var trimmedPhone = phone?.Trim();
+
+        if (string.IsNullOrWhiteSpace(trimmedName))
+        {
+            throw new OrderValidationException("Tên khách không được để trống.");
+        }
+
+        if (string.IsNullOrWhiteSpace(trimmedPhone))
+        {
+            throw new OrderValidationException("Số điện thoại không được để trống.");
+        }
+
+        if (order.OrderType == OrderType.Delivery && string.IsNullOrWhiteSpace(address))
+        {
+            throw new OrderValidationException("Đơn giao hàng cần có địa chỉ.");
+        }
+
+        order.CustomerName = trimmedName;
+        order.Phone = trimmedPhone;
+        order.Address = order.OrderType == OrderType.Pickup ? null : address?.Trim();
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return order;
     }
 
     private static void ValidateOrder(Order order)

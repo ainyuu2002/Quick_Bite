@@ -87,15 +87,52 @@ public class AppDbContext : DbContext
     {
         var seedDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
-        mb.Entity<Account>().HasData(new Account
-        {
-            Id = 1,
-            Username = "admin",
-            PasswordHash = "AQAAAAEAACcQAAAAEJFpZ+ufTGXPh6BKlRvKjXzXADutxFQ/qwL568hK7uH0t/S5bWeEtmfzhiKXcqSkmQ==",
-            FullName = "Chủ quán QuickBite",
-            Role = AccountRole.Admin,
-            IsActive = true
-        });
+        mb.Entity<Account>().HasData(
+            new Account
+            {
+                Id = 1,
+                Username = "admin",
+                PasswordHash = "AQAAAAEAACcQAAAAEJFpZ+ufTGXPh6BKlRvKjXzXADutxFQ/qwL568hK7uH0t/S5bWeEtmfzhiKXcqSkmQ==",
+                FullName = "Chủ quán QuickBite",
+                Role = AccountRole.Admin,
+                IsActive = true
+            },
+            new Account
+            {
+                Id = 2,
+                Username = "manager",
+                PasswordHash = "AQAAAAIAAYagAAAAEGoFiVYx+Wgwqn9m1YSLrJInS2af1iMHtb562Y6KK6PBi8Kvcx4O+jkzHjmuTrMHtQ==",
+                FullName = "Quản lý ca",
+                Role = AccountRole.Manager,
+                IsActive = true
+            },
+            new Account
+            {
+                Id = 3,
+                Username = "staff",
+                PasswordHash = "AQAAAAIAAYagAAAAEHV+SCr2GoiocJowWlig57BqENDkrmrIWMuoiEouQVJPh8bbpDB8OCom/sEpf+35QA==",
+                FullName = "Nhân viên nhận đơn",
+                Role = AccountRole.Staff,
+                IsActive = true
+            },
+            new Account
+            {
+                Id = 4,
+                Username = "kitchen",
+                PasswordHash = "AQAAAAIAAYagAAAAEK9k5yyJ+GUBVAWApffAO0aTAaX3TdQPaLkwKkbTK6tDKVVrMIvVLZQwpvccTnj7lw==",
+                FullName = "Bếp",
+                Role = AccountRole.Kitchen,
+                IsActive = true
+            },
+            new Account
+            {
+                Id = 5,
+                Username = "shipper",
+                PasswordHash = "AQAAAAIAAYagAAAAEHWoZzeZv3ASHpz5XL84pUUBylB35RExme6xcmoUjnRoftIvgEx90xcppMehskjnqg==",
+                FullName = "Shipper",
+                Role = AccountRole.Shipper,
+                IsActive = true
+            });
 
         mb.Entity<Category>().HasData(
             new Category { Id = 1, Name = "Cơm", Description = "Các món cơm phần đầy đặn", DisplayOrder = 1 },
