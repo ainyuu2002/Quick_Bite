@@ -1,0 +1,123 @@
+@page "/Orders/Feedback"
+@model QuickBite.Pages.Orders.FeedbackModel
+@using QuickBite.Models
+@{
+    ViewData["Title"] = "Đánh giá & Phản ánh";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Đánh giá & Phản ánh</h1>
+        <p class="text-muted mb-0">
+            Đơn #@Model.Order.Id · @Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+            · @Model.Order.Total.ToString("N0") đ
+        </p>
+    </div>
+    <a asp-page="/Orders/Track" class="btn btn-outline-secondary">Quay lại theo dõi đơn</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert alert-success">@Model.Message</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="h4 mb-3">Chấm điểm đơn hàng</h2>
+                @if (Model.ExistingRating is not null)
+                {
+                    <p class="mb-1">Bạn đã chấm <strong>@Model.ExistingRating.Stars/5 sao</strong> cho đơn này.</p>
+                    <p class="text-muted small mb-0">
+                        Đánh giá chỉ gửi riêng cho chủ quán để cải thiện chất lượng.
+                    </p>
+                }
+                else if (Model.Order.Status != OrderStatus.Completed)
+                {
+                    <p class="text-muted mb-0">Chỉ chấm điểm được khi đơn đã hoàn tất.</p>
+                }
+                else
+                {
+                    <p class="text-muted">
+                        Đánh giá chỉ gửi riêng cho chủ quán, không hiển thị công khai.
+                    </p>
+                    <form method="post" asp-page-handler="Rate">
+                        <input type="hidden" name="orderId" value="@Model.Order.Id" />
+                        <div class="d-flex gap-2 mb-3">
+                            @for (var stars = 1; stars <= 5; stars++)
+                            {
+                                <button type="submit" name="stars" value="@stars"
+                                        class="btn btn-outline-warning px-3"
+                                        title="@stars sao">
+                                    @stars ★
+                                </button>
+                            }
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="h4 mb-3">Gửi phản ánh</h2>
+                @if (Model.ExistingComplaint is not null)
+                {
+                    <div class="mb-2">
+                        <span class="badge @(Model.ExistingComplaint.Status == ComplaintStatus.Resolved ? "bg-success" : Model.ExistingComplaint.Status == ComplaintStatus.InProgress ? "bg-info" : "bg-secondary")">
+                            @Model.ExistingComplaint.Status.ToDisplayText()
+                        </span>
+                        <span class="text-muted ms-1">@Model.ExistingComplaint.Category.ToDisplayText()</span>
+                    </div>
+                    <p class="mb-2">@Model.ExistingComplaint.Description</p>
+                    @if (!string.IsNullOrWhiteSpace(Model.ExistingComplaint.Resolution))
+                    {
+                        <div class="alert alert-info mb-0">
+                            <strong>Phản hồi từ quán:</strong> @Model.ExistingComplaint.Resolution
+                        </div>
+                    }
+                }
+                else if (Model.Order.Status != OrderStatus.Completed)
+                {
+                    <p class="text-muted mb-0">Chỉ gửi được phản ánh khi đơn đã hoàn tất.</p>
+                }
+                else
+                {
+                    <form method="post" asp-page-handler="Complain">
+                        <input type="hidden" name="orderId" value="@Model.Order.Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label" for="complaint-category">Vấn đề gặp phải</label>
+                            <select id="complaint-category" name="category" class="form-select">
+                                @foreach (var category in Enum.GetValues<ComplaintCategory>())
+                                {
+                                    <option value="@category">@category.ToDisplayText()</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="complaint-description">Mô tả chi tiết</label>
+                            <textarea id="complaint-description" name="description" class="form-control"
+                                      rows="4" maxlength="1000" required
+                                      placeholder="Mô tả vấn đề để quán xử lý nhanh nhất..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Gửi phản ánh</button>
+                        <p class="small text-muted mt-2 mb-0">
+                            Mỗi đơn gửi được một phản ánh, trong vòng 7 ngày sau khi đặt.
+                        </p>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
