@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Models;
+using QuickBite.Modules.Operations.Store;
 
 namespace QuickBite.Data;
 
@@ -13,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
+    public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -57,6 +59,16 @@ public class AppDbContext : DbContext
         // Phục vụ báo cáo chấm công theo người + theo ngày.
         mb.Entity<WorkSession>()
           .HasIndex(w => new { w.AccountId, w.CheckInAt });
+
+        mb.Entity<StoreSetting>()
+          .ToTable(table =>
+              table.HasCheckConstraint("CK_StoreSettings_Singleton", "[Id] = 1"));
+
+        mb.Entity<StoreSetting>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(s => s.UpdatedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
 
         mb.Entity<Order>().HasIndex(o => o.Status);
         mb.Entity<Order>().HasIndex(o => o.CreatedAt);

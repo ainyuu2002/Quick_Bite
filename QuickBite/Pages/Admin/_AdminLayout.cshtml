@@ -6,6 +6,7 @@
     bool isOrders = path.StartsWithSegments("/Admin/Orders");
     bool isStaff = path.StartsWithSegments("/Admin/Staff");
     bool isReports = path.StartsWithSegments("/Admin/Reports");
+    bool isOperations = path.StartsWithSegments("/Admin/Operations");
 
     // Ẩn mục chỉ dành cho chủ quán không phải là bảo mật — chặn thật nằm ở policy
     // ManagerOnly trong Program.cs. Ẩn ở đây chỉ để nhân viên khỏi bấm vào rồi ăn trang từ chối.
@@ -38,6 +39,10 @@
                 <a class="admin-rail__link" asp-page="/Admin/Orders/Index" aria-current="@(isOrders ? "page" : null)">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 2.5h10v11H3zM5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
                     Đơn hàng
+                </a>
+                <a class="admin-rail__link" asp-page="/Admin/Operations/Store" aria-current="@(isOperations ? "page" : null)">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 6.5h11M3.5 6.5v7h9v-7M2 6.5l1.5-4h9l1.5 4M6 13.5v-4h4v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    Cửa hàng
                 </a>
                 @if (isManager)
                 {
