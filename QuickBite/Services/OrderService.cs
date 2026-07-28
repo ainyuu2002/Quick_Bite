@@ -15,7 +15,10 @@ public sealed record CreateOrderRequest(
     string Address,
     string? Note,
     PaymentMethod PaymentMethod,
-    IReadOnlyCollection<CreateOrderItem> Items);
+    IReadOnlyCollection<CreateOrderItem> Items,
+    int? CustomerId = null,
+    string? PromotionCode = null,
+    string? VoucherCode = null);
 
 public sealed class OrderValidationException : Exception
 {
@@ -24,20 +27,24 @@ public sealed class OrderValidationException : Exception
     }
 }
 
-/// <summary>
-/// Tạo đơn từ dữ liệu tin cậy trong DB. Giá và trạng thái còn hàng trong Session
-/// không được sử dụng để quyết định đơn hàng cuối cùng.
-/// </summary>
 public sealed class OrderService
 {
     private const int MaximumQuantityPerItem = 99;
     private readonly AppDbContext _db;
     private readonly IHubContext<OrderHub> _hub;
+    private readonly IDiscountService _discounts;
+    private readonly IOrderEvents _events;
 
-    public OrderService(AppDbContext db, IHubContext<OrderHub> hub)
+    public OrderService(
+        AppDbContext db,
+        IHubContext<OrderHub> hub,
+        IDiscountService discounts,
+        IOrderEvents events)
     {
         _db = db;
         _hub = hub;
+        _discounts = discounts;
+        _events = events;
     }
 
     public async Task<Order> CreateOrderAsync(
@@ -113,15 +120,29 @@ public sealed class OrderService
             });
         }
 
-        order.Total = order.Items.Sum(item => item.LineTotal);
+        var itemsTotal = order.Items.Sum(item => item.LineTotal);
+        var quote = await _discounts.QuoteAsync(
+            order.Phone,
+            request.CustomerId,
+            itemsTotal,
+            request.PromotionCode,
+            request.VoucherCode,
+            cancellationToken);
+
+        order.CustomerId = request.CustomerId;
+        order.PromotionId = quote.Promotion?.Id;
+        order.VoucherId = quote.Voucher?.Id;
+        order.DiscountAmount = quote.DiscountAmount;
+        order.Total = itemsTotal - quote.DiscountAmount;
         _db.Orders.Add(order);
         await _db.SaveChangesAsync(cancellationToken);
+        await _discounts.CommitAsync(order, quote, cancellationToken);
 
-        // [D] SignalR (SDS 3.3): báo màn hình staff có đơn mới — chỉ bắn SAU khi DB lưu thành công
         await _hub.Clients.Group("staff").SendAsync("NewOrder", new
         {
             id = order.Id,
             customerName = order.CustomerName,
+            phone = order.Phone,
             total = order.Total,
             createdAt = order.CreatedAt,
             items = order.Items.Select(item => new
@@ -187,19 +208,77 @@ public sealed class OrderService
         order.Status = OrderStatus.Cancelled;
         await _db.SaveChangesAsync(cancellationToken);
 
-        // [D] SignalR (SDS 3.3): hủy đơn = một lần đổi trạng thái — báo cả khách (group order-{id}) lẫn staff
-        var statusPayload = new
+        await _events.OrderCancelledAsync(order, cancellationToken);
+        await NotifyStatusChangedAsync(order, cancellationToken);
+
+        return order;
+    }
+
+    public async Task<Order> ChangeStatusAsync(
+        int orderId,
+        OrderStatus nextStatus,
+        int? actorAccountId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Enum.IsDefined(nextStatus))
+        {
+            throw new OrderValidationException("Trạng thái đơn hàng không hợp lệ.");
+        }
+
+        var order = await _db.Orders
+            .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
+
+        var isCancellation = nextStatus == OrderStatus.Cancelled
+            && order.Status.CanBeCancelledByStaff();
+        var isForwardTransition = order.Status.CanTransitionTo(nextStatus);
+
+        if (!isCancellation && !isForwardTransition)
+        {
+            throw new OrderValidationException(
+                $"Không thể chuyển đơn từ {order.Status.ToDisplayText()} " +
+                $"sang {nextStatus.ToDisplayText()}.");
+        }
+
+        if (nextStatus == OrderStatus.Accepted && order.AcceptedByAccountId is null)
+        {
+            order.AcceptedByAccountId = actorAccountId;
+            order.AcceptedAt = DateTime.Now;
+        }
+
+        order.Status = nextStatus;
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        if (nextStatus == OrderStatus.Completed)
+        {
+            await _events.OrderCompletedAsync(order, cancellationToken);
+        }
+        else if (nextStatus == OrderStatus.Cancelled)
+        {
+            await _events.OrderCancelledAsync(order, cancellationToken);
+        }
+
+        await NotifyStatusChangedAsync(order, cancellationToken);
+
+        return order;
+    }
+
+    private async Task NotifyStatusChangedAsync(
+        Order order,
+        CancellationToken cancellationToken)
+    {
+        var payload = new
         {
             orderId = order.Id,
             status = (int)order.Status,
             statusText = order.Status.ToDisplayText()
         };
-        await _hub.Clients.Group($"order-{order.Id}")
-            .SendAsync("OrderStatusChanged", statusPayload, cancellationToken);
-        await _hub.Clients.Group("staff")
-            .SendAsync("OrderStatusChanged", statusPayload, cancellationToken);
 
-        return order;
+        await _hub.Clients.Group($"order-{order.Id}")
+            .SendAsync("OrderStatusChanged", payload, cancellationToken);
+        await _hub.Clients.Group("staff")
+            .SendAsync("OrderStatusChanged", payload, cancellationToken);
     }
 
     private static void ValidateOrder(Order order)

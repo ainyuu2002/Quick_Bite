@@ -1,0 +1,146 @@
+@page
+@model QuickBite.Pages.Admin.Ingredients.IndexModel
+@using QuickBite.Modules.Operations.Ingredients
+
+@{
+    ViewData["Title"] = "Nguyên liệu";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Nguyên liệu chính</h1>
+        <p class="page-description">
+            Không theo dõi số lượng kho. Khi nguyên liệu hết, các món liên quan được tắt tự động.
+        </p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert--danger" role="alert">@errorMessage</div>
+}
+
+@if (Model.CanConfigure)
+{
+    <section class="form-surface ingredient-create">
+        <h2 class="section-title">Thêm nguyên liệu</h2>
+        <form method="post" asp-page-handler="Create" class="ingredient-create__form">
+            <div class="field">
+                <label asp-for="Create.Name" class="label">Tên nguyên liệu</label>
+                <input asp-for="Create.Name" class="input" placeholder="Ví dụ: Cá basa" />
+                <span asp-validation-for="Create.Name" class="field-error"></span>
+            </div>
+            <button type="submit" class="btn btn--primary">Thêm</button>
+        </form>
+    </section>
+}
+
+<h2 class="section-title ingredient-section-title">Danh sách cần theo dõi</h2>
+<div class="ingredient-grid">
+    @if (!Model.Ingredients.Any())
+    {
+        <div class="form-surface"><p class="empty-state">Chưa có nguyên liệu nào.</p></div>
+    }
+
+    @foreach (var ingredient in Model.Ingredients)
+    {
+        var badgeClass = ingredient.Status switch
+        {
+            IngredientStatus.Available => "badge--success",
+            IngredientStatus.Low => "badge--warning",
+            _ => "badge--danger"
+        };
+
+        <article class="form-surface ingredient-card">
+            <div class="ingredient-card__header">
+                <div>
+                    <h3 class="ingredient-card__name">@ingredient.Name</h3>
+                    <span class="badge @badgeClass">@ingredient.Status.ToDisplayText()</span>
+                </div>
+                @await Html.PartialAsync(
+                    "/Pages/Shared/_IngredientStatusControl.cshtml",
+                    ingredient)
+            </div>
+
+            <p class="field-hint">
+                Món liên quan:
+                @(ingredient.Dishes.Count == 0
+                    ? "chưa gắn món"
+                    : string.Join(", ", ingredient.Dishes.Select(link => link.MenuItem.Name)))
+            </p>
+
+            @if (ingredient.Status != IngredientStatus.Available)
+            {
+                <form method="post" asp-page-handler="Restocked" class="restock-form">
+                    <input type="hidden" name="ingredientId" value="@ingredient.Id" />
+                    <label class="restock-form__note">
+                        <span class="visually-hidden">Ghi chú nhập @ingredient.Name</span>
+                        <input type="text" name="note" maxlength="500"
+                               placeholder="Ghi chú nhập hàng (không bắt buộc)" class="input" />
+                    </label>
+                    <button type="submit" class="btn btn--primary btn--sm">Đã nhập</button>
+                </form>
+            }
+
+            @if (Model.CanConfigure)
+            {
+                <details class="ingredient-links">
+                    <summary>Chọn món sử dụng nguyên liệu</summary>
+                    <form method="post" asp-page-handler="UpdateLinks">
+                        <input type="hidden" name="Links.IngredientId" value="@ingredient.Id" />
+                        <div class="ingredient-checklist">
+                            @foreach (var menuItem in Model.MenuItems)
+                            {
+                                var isChecked = ingredient.Dishes.Any(
+                                    link => link.MenuItemId == menuItem.Id);
+                                <label class="ingredient-check">
+                                    <input type="checkbox" name="Links.MenuItemIds"
+                                           value="@menuItem.Id" checked="@isChecked" />
+                                    <span>@menuItem.Name</span>
+                                </label>
+                            }
+                        </div>
+                        <button type="submit" class="btn btn--secondary btn--sm">Lưu liên kết</button>
+                    </form>
+                </details>
+            }
+        </article>
+    }
+</div>
+
+<h2 class="section-title ingredient-section-title">Nhật ký thao tác gần đây</h2>
+<div class="data-surface">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Thời gian</th>
+                <th>Nguyên liệu</th>
+                <th>Thao tác</th>
+                <th>Thay đổi</th>
+                <th>Người thực hiện</th>
+                <th>Ghi chú</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.RecentLogs.Any())
+            {
+                <tr><td colspan="6"><p class="empty-state">Chưa có thao tác nào.</p></td></tr>
+            }
+            @foreach (var log in Model.RecentLogs)
+            {
+                <tr>
+                    <td><time>@log.CreatedAt.ToString("HH:mm dd/MM/yyyy")</time></td>
+                    <td>@log.IngredientName</td>
+                    <td>@(log.Action == IngredientLogAction.Restocked ? "Đã nhập" : "Đổi trạng thái")</td>
+                    <td>@log.PreviousStatus.ToDisplayText() → @log.NewStatus.ToDisplayText()</td>
+                    <td>@log.ActorName</td>
+                    <td>@(log.Note ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

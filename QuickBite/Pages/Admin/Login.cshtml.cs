@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Models;
+using QuickBite.Modules.Operations.Authorization;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
@@ -43,14 +44,14 @@ namespace QuickBite.Pages.Admin
             {
                 return Page();
             }
-            var user = await _db.AdminUsers.FirstOrDefaultAsync(u => u.Username == Username);
+            var user = await _db.Accounts.FirstOrDefaultAsync(u => u.Username == Username);
             if (user is null)
             {
                 ModelState.AddModelError(string.Empty, "Tên đăng nhập hoặc mật khẩu không đúng");
                 return Page();
             }
 
-            var hasher = new PasswordHasher<AdminUser>();
+            var hasher = new PasswordHasher<Account>();
             var verifyResult = hasher.VerifyHashedPassword(user, user.PasswordHash, Password);
 
             if(verifyResult == PasswordVerificationResult.Failed)
@@ -59,10 +60,25 @@ namespace QuickBite.Pages.Admin
                 return Page();
             }
 
+            if (!user.IsActive)
+            {
+                ModelState.AddModelError(string.Empty,
+                    "Tài khoản đã bị khoá. Vui lòng liên hệ chủ quán.");
+                return Page();
+            }
+
             var claims = new List<Claim>
             {
                 new (ClaimTypes.Name, user.Username),
-                new (ClaimTypes.NameIdentifier, user.Id.ToString())
+                new (ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new (ClaimTypes.Role, user.Role switch
+                {
+                    AccountRole.Manager => InternalRoles.Manager,
+                    AccountRole.Staff => InternalRoles.Staff,
+                    AccountRole.Kitchen => InternalRoles.Kitchen,
+                    AccountRole.Shipper => InternalRoles.Shipper,
+                    _ => throw new InvalidOperationException("Vai trò tài khoản không hợp lệ.")
+                })
             };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);

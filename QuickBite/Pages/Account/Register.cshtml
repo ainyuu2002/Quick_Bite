@@ -1,0 +1,93 @@
+@page "/Account/Register"
+@namespace QuickBite.Pages.CustomerAccount
+@model QuickBite.Pages.CustomerAccount.RegisterModel
+@{
+    ViewData["Title"] = "Đăng ký thành viên";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h1 class="h3 mb-1">Đăng ký thành viên</h1>
+                <p class="text-muted mb-4">
+                    Tích 1 điểm cho mỗi 10.000đ, đổi voucher giảm giá và đặt lại món cũ một chạm.
+                </p>
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                @if (!Model.ShowVerification)
+                {
+                    <form method="post" asp-page-handler="SendCode">
+                        <div class="mb-3">
+                            <label asp-for="Phone" class="form-label">Số điện thoại</label>
+                            <input asp-for="Phone" class="form-control" inputmode="tel" autocomplete="tel"
+                                   placeholder="Ví dụ: 0901234567" />
+                            <span asp-validation-for="Phone" class="text-danger"></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Gửi mã xác thực</button>
+                    </form>
+                    <p class="text-center mt-3 mb-0">
+                        Đã có tài khoản?
+                        <a asp-page="/Account/Login">Đăng nhập</a>
+                    </p>
+                }
+                else
+                {
+                    @if (!string.IsNullOrEmpty(Model.IssuedCode))
+                    {
+                        <div class="alert alert-info">
+                            Mã xác thực đã gửi tới <strong>@Model.Phone</strong>.
+                            <br />
+                            <small class="text-muted">
+                                (Bản demo chưa tích hợp SMS — mã của bạn là:
+                                <strong>@Model.IssuedCode</strong>)
+                            </small>
+                        </div>
+                    }
+
+                    <form method="post" asp-page-handler="Register">
+                        <input type="hidden" asp-for="Phone" />
+
+                        <div class="mb-3">
+                            <label asp-for="Code" class="form-label">Mã xác thực (6 chữ số)</label>
+                            <input asp-for="Code" class="form-control" inputmode="numeric" maxlength="6" />
+                            <span asp-validation-for="Code" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label">Họ và tên</label>
+                            <input asp-for="FullName" class="form-control" autocomplete="name" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label">Mật khẩu (tối thiểu 6 ký tự)</label>
+                            <input asp-for="Password" type="password" class="form-control"
+                                   autocomplete="new-password" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ConfirmPassword" class="form-label">Nhập lại mật khẩu</label>
+                            <input asp-for="ConfirmPassword" type="password" class="form-control"
+                                   autocomplete="new-password" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Hoàn tất đăng ký</button>
+                    </form>
+
+                    <form method="post" asp-page-handler="SendCode" class="mt-2">
+                        <input type="hidden" asp-for="Phone" />
+                        <button type="submit" class="btn btn-link btn-sm w-100">Gửi lại mã</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

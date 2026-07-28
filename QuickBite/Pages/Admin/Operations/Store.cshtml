@@ -1,0 +1,116 @@
+@page
+@model QuickBite.Pages.Admin.Operations.StoreModel
+
+@{
+    ViewData["Title"] = "Trạng thái cửa hàng";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Trạng thái cửa hàng</h1>
+        <p class="page-description">
+            Kiểm soát thời gian và trạng thái nhận đơn theo thời gian thực.
+        </p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+
+<section class="form-surface" aria-labelledby="store-status-title">
+    <h2 id="store-status-title" class="section-title">Nhận đơn hiện tại</h2>
+
+    @if (Model.Status.IsAcceptingOrders)
+    {
+        <div class="alert alert--success" role="status">
+            Quán đang nhận đơn.
+        </div>
+    }
+    else if (Model.Status.IsPaused)
+    {
+        <div class="alert alert--warning" role="status">
+            Quán đang tạm ngưng nhận đơn: @Model.Status.PauseReason
+        </div>
+    }
+    else
+    {
+        <div class="alert alert--warning" role="status">
+            Quán đang ngoài giờ mở cửa.
+        </div>
+    }
+
+    <dl class="kv">
+        <div class="kv-row">
+            <dt class="kv-label">Giờ hoạt động</dt>
+            <dd class="kv-value">
+                @if (Model.Status.OpensAt == Model.Status.ClosesAt)
+                {
+                    <text>Mở cửa 24 giờ</text>
+                }
+                else
+                {
+                    <text>@Model.Status.OpensAt.ToString("HH:mm")–@Model.Status.ClosesAt.ToString("HH:mm")</text>
+                }
+            </dd>
+        </div>
+        <div class="kv-row">
+            <dt class="kv-label">Cờ dùng khi đặt đơn</dt>
+            <dd class="kv-value">IsAcceptingOrders = @Model.Status.IsAcceptingOrders.ToString().ToLowerInvariant()</dd>
+        </div>
+    </dl>
+
+    @if (Model.Status.IsPaused)
+    {
+        <form method="post" asp-page-handler="Resume">
+            <button type="submit" class="btn btn--primary">Mở lại nhận đơn</button>
+        </form>
+    }
+    else
+    {
+        <form method="post" asp-page-handler="Pause" class="form-grid">
+            <div class="field field--wide">
+                <label asp-for="Pause.Reason" class="label">Lý do tạm ngưng</label>
+                <textarea asp-for="Pause.Reason" class="textarea"
+                          placeholder="Ví dụ: Bếp đang quá tải trong 30 phút"></textarea>
+                <span asp-validation-for="Pause.Reason" class="field-error"></span>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn--danger">Tạm ngưng nhận đơn</button>
+            </div>
+        </form>
+    }
+</section>
+
+@if (Model.CanManageBusinessHours)
+{
+    <section class="form-surface store-hours" aria-labelledby="business-hours-title">
+        <h2 id="business-hours-title" class="section-title">Giờ mở cửa</h2>
+        <p class="page-description">
+            Đặt giờ mở bằng giờ đóng nếu quán hoạt động 24 giờ. Hỗ trợ khung giờ qua đêm.
+        </p>
+
+        <form method="post" asp-page-handler="UpdateHours" class="form-grid">
+            <div class="field">
+                <label asp-for="BusinessHours.OpensAt" class="label">Giờ mở cửa</label>
+                <input asp-for="BusinessHours.OpensAt" type="time" class="input" />
+                <span asp-validation-for="BusinessHours.OpensAt" class="field-error"></span>
+            </div>
+            <div class="field">
+                <label asp-for="BusinessHours.ClosesAt" class="label">Giờ đóng cửa</label>
+                <input asp-for="BusinessHours.ClosesAt" type="time" class="input" />
+                <span asp-validation-for="BusinessHours.ClosesAt" class="field-error"></span>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn--primary">Lưu giờ mở cửa</button>
+            </div>
+        </form>
+    </section>
+}
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

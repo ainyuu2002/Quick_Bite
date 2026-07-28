@@ -1,0 +1,105 @@
+@page
+@model QuickBite.Pages.Admin.Staff.IndexModel
+@using QuickBite.Models
+
+@{
+    ViewData["Title"] = "Quản lý nhân viên";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Quản lý nhân viên</h1>
+        <p class="page-description">
+            Tài khoản đăng nhập khu quản trị. Nhân viên chỉ xử lý đơn; chủ quán quản lý cả món ăn và tài khoản.
+        </p>
+    </div>
+    <div class="page-header__actions">
+        <a asp-page="./Report" class="btn btn--secondary">Báo cáo chấm công</a>
+        <a asp-page="./Create" class="btn btn--primary">Thêm nhân viên</a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert--danger" role="alert">@errorMessage</div>
+}
+
+<div class="data-surface">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Tên đăng nhập</th>
+                <th>Họ tên</th>
+                <th>Vai trò</th>
+                <th>Đơn giá/giờ</th>
+                <th class="num">Đơn đã nhận</th>
+                <th>Trạng thái</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model.Rows)
+            {
+                var account = row.Account;
+                var isSelf = account.Id == Model.CurrentAccountId;
+                <tr>
+                    <td>
+                        @account.Username
+                        @if (isSelf)
+                        {
+                            <span class="badge badge--muted">bạn</span>
+                        }
+                    </td>
+                    <td>@(account.FullName ?? "—")</td>
+                    <td>@account.Role.ToDisplayText()</td>
+                    <td>
+                        <form method="post" asp-page-handler="UpdateHourlyRate"
+                              class="rate-form">
+                            <input type="hidden" name="id" value="@account.Id" />
+                            <input type="number" name="hourlyRate"
+                                   value="@account.HourlyRate.ToString("0", System.Globalization.CultureInfo.InvariantCulture)"
+                                   min="0" max="1000000" step="1000"
+                                   class="input rate-form__input"
+                                   aria-label="Đơn giá mỗi giờ của @account.Username" />
+                            <button type="submit" class="btn btn--secondary btn--sm">Lưu</button>
+                        </form>
+                    </td>
+                    <td class="num">@row.AcceptedOrderCount</td>
+                    <td>
+                        @if (account.IsActive)
+                        {
+                            <span class="badge badge--success">Đang hoạt động</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge--muted">Đã khoá</span>
+                        }
+                    </td>
+                    <td>
+                        @* Không có nút xoá: FK Restrict giữ lại dấu vết ai đã nhận đơn nào.
+                           Khoá tài khoản là cách "cho nghỉ việc" mà không mất lịch sử. *@
+                        @if (!isSelf)
+                        {
+                            <form method="post" asp-page-handler="ToggleActive">
+                                <input type="hidden" name="id" value="@account.Id" />
+                                @if (account.IsActive)
+                                {
+                                    <button type="submit" class="btn btn--danger-quiet btn--sm">Khoá</button>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn--secondary btn--sm">Mở khoá</button>
+                                }
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
