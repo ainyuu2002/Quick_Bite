@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Models;
+using QuickBite.Modules.Operations.MenuAvailability;
 using QuickBite.Modules.Operations.Store;
 
 namespace QuickBite.Data;
@@ -15,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
     public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
+    public DbSet<DailyQuota> DailyQuotas => Set<DailyQuota>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<OtpVerification> OtpVerifications => Set<OtpVerification>();
     public DbSet<Promotion> Promotions => Set<Promotion>();
@@ -76,6 +78,37 @@ public class AppDbContext : DbContext
           .HasOne<Account>()
           .WithMany()
           .HasForeignKey(s => s.UpdatedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<DailyQuota>()
+          .ToTable(table =>
+          {
+              table.HasCheckConstraint(
+                  "CK_DailyQuotas_DailyLimit",
+                  "[DailyLimit] > 0");
+              table.HasCheckConstraint(
+                  "CK_DailyQuotas_ReservedQuantity",
+                  "[ReservedQuantity] >= 0");
+              table.HasCheckConstraint(
+                  "CK_DailyQuotas_SaleWindow",
+                  "([SaleStartsAt] IS NULL AND [SaleEndsAt] IS NULL) OR " +
+                  "([SaleStartsAt] IS NOT NULL AND [SaleEndsAt] IS NOT NULL)");
+          });
+
+        mb.Entity<DailyQuota>()
+          .HasIndex(quota => quota.MenuItemId)
+          .IsUnique();
+
+        mb.Entity<DailyQuota>()
+          .HasOne(quota => quota.MenuItem)
+          .WithOne()
+          .HasForeignKey<DailyQuota>(quota => quota.MenuItemId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        mb.Entity<DailyQuota>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(quota => quota.UpdatedByAccountId)
           .OnDelete(DeleteBehavior.Restrict);
 
         mb.Entity<Order>().HasIndex(o => o.Status);

@@ -1,5 +1,6 @@
 using QuickBite.Models;
 using QuickBite.Modules.Operations.Authorization;
+using QuickBite.Modules.Operations.MenuAvailability;
 using QuickBite.Modules.Operations.Store;
 
 static void Assert(bool condition, string message)
@@ -68,5 +69,24 @@ var alwaysOpenStore = new StoreSetting
     ClosesAt = new TimeOnly(0, 0)
 };
 Assert(alwaysOpenStore.IsWithinBusinessHours(new TimeOnly(12, 0)), "Giờ bằng nhau phải là mở 24 giờ.");
+
+var dailyQuota = new DailyQuota
+{
+    DailyLimit = 30,
+    ReservedQuantity = 28,
+    QuotaDate = new DateOnly(2026, 7, 28),
+    SaleStartsAt = new TimeOnly(6, 0),
+    SaleEndsAt = new TimeOnly(10, 0)
+};
+Assert(dailyQuota.RemainingQuantity == 2, "Quota còn lại phải bằng giới hạn trừ số đã giữ.");
+Assert(dailyQuota.IsWithinSaleWindow(new TimeOnly(8, 0)), "Món phải bán trong khung giờ.");
+Assert(!dailyQuota.IsWithinSaleWindow(new TimeOnly(12, 0)), "Món phải ngừng bán ngoài khung giờ.");
+dailyQuota.ResetFor(new DateOnly(2026, 7, 29));
+Assert(dailyQuota.ReservedQuantity == 0, "Quota phải reset khi sang ngày mới.");
+
+dailyQuota.SaleStartsAt = new TimeOnly(18, 0);
+dailyQuota.SaleEndsAt = new TimeOnly(2, 0);
+Assert(dailyQuota.IsWithinSaleWindow(new TimeOnly(23, 0)), "Khung bán qua đêm phải hỗ trợ trước nửa đêm.");
+Assert(dailyQuota.IsWithinSaleWindow(new TimeOnly(1, 0)), "Khung bán qua đêm phải hỗ trợ sau nửa đêm.");
 
 Console.WriteLine("Admin order domain tests passed.");

@@ -4,6 +4,7 @@ using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Services;
 using QuickBite.Modules.Operations.Authorization;
+using QuickBite.Modules.Operations.MenuAvailability;
 using QuickBite.Modules.Operations.Store;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,9 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Admin/Orders", InternalPolicies.ReceiveOrders);
     options.Conventions.AuthorizeFolder("/Staff", InternalPolicies.ReceiveOrders);
     options.Conventions.AuthorizeFolder("/Admin/Operations", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizePage(
+        "/Admin/Operations/MenuAvailability",
+        InternalPolicies.ManagerOnly);
     options.Conventions.AuthorizeFolder("/Admin/MenuItems", InternalPolicies.ManagerOnly);
     options.Conventions.AuthorizeFolder("/Admin/Staff", InternalPolicies.ManagerOnly);
     options.Conventions.AuthorizeFolder("/Admin/Reports", InternalPolicies.ManagerOnly);
@@ -46,6 +50,7 @@ builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<WorkSessionService>();
 builder.Services.AddScoped<IStoreAvailabilityService, StoreAvailabilityService>();
+builder.Services.AddScoped<IMenuAvailabilityService, MenuAvailabilityService>();
 builder.Services.AddScoped<CustomerAccountService>();
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<LoyaltyService>();
