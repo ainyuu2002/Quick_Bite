@@ -151,6 +151,9 @@ public sealed class OrderService
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
             OrderType = request.OrderType,
             PaymentMethod = request.PaymentMethod,
+            PaymentStatus = request.PaymentMethod == PaymentMethod.BankTransfer
+                ? PaymentStatus.Paid
+                : PaymentStatus.Unpaid,
             DeliveryFee = deliveryFee,
             OrderCode = orderCode,
             Status = OrderStatus.Pending,
@@ -233,23 +236,6 @@ public sealed class OrderService
 
         await NotifyStatusChangedAsync(order, cancellationToken);
         await _events.PublishAsync(new OrderCancelled(order.Id, trimmedReason), cancellationToken);
-
-        return order;
-    }
-
-    public async Task<Order> MarkPaidAsync(int orderId, CancellationToken cancellationToken = default)
-    {
-        var order = await _db.Orders
-            .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
-            ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
-
-        if (order.PaymentStatus == PaymentStatus.Paid)
-        {
-            return order;
-        }
-
-        order.PaymentStatus = PaymentStatus.Paid;
-        await _db.SaveChangesAsync(cancellationToken);
 
         return order;
     }

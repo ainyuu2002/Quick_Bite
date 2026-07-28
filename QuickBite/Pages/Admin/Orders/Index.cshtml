@@ -173,21 +173,6 @@
                                                 @order.PaymentStatus.ToDisplayText()
                                             </span>
                                             @if (order.PaymentStatus == PaymentStatus.Unpaid
-                                                && order.PaymentMethod == PaymentMethod.BankTransfer
-                                                && order.Status is not (OrderStatus.Cancelled or OrderStatus.Rejected
-                                                    or OrderStatus.Expired or OrderStatus.DeliveryFailed or OrderStatus.NoShow))
-                                            {
-                                                <form method="post" asp-page-handler="MarkPaid" class="order-action-form">
-                                                    <input type="hidden" name="orderId" value="@order.Id" />
-                                                    <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
-                                                    <input type="hidden" name="search" value="@Model.Search" />
-                                                    <input type="hidden" name="sortBy" value="@Model.SortBy" />
-                                                    <input type="hidden" name="sortDir" value="@Model.SortDir" />
-                                                    <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
-                                                    <button class="btn btn--secondary btn--sm" type="submit">Xác nhận đã nhận chuyển khoản</button>
-                                                </form>
-                                            }
-                                            @if (order.PaymentStatus == PaymentStatus.Unpaid
                                                 && order.PaymentMethod == PaymentMethod.Cash)
                                             {
                                                 <span class="muted">Tiền mặt — tự xác nhận khi đơn hoàn tất</span>

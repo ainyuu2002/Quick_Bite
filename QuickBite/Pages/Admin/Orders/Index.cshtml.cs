@@ -213,37 +213,4 @@ public class IndexModel : PageModel
         });
     }
 
-    public async Task<IActionResult> OnPostMarkPaidAsync(
-        int orderId,
-        OrderStatus currentStatus = OrderStatus.Pending,
-        string? search = null,
-        string sortBy = "date",
-        string sortDir = "desc",
-        int pageNumber = 1,
-        CancellationToken cancellationToken = default)
-    {
-        currentStatus = Enum.IsDefined(currentStatus) ? currentStatus : OrderStatus.Pending;
-        sortBy = sortBy == "total" ? "total" : "date";
-        sortDir = sortDir == "asc" ? "asc" : "desc";
-        pageNumber = Math.Max(1, pageNumber);
-
-        try
-        {
-            await _orderService.MarkPaidAsync(orderId, cancellationToken);
-            TempData["SuccessMessage"] = $"Đã xác nhận thanh toán đơn #{orderId}.";
-        }
-        catch (KeyNotFoundException exception)
-        {
-            TempData["ErrorMessage"] = exception.Message;
-        }
-
-        return RedirectToPage(new
-        {
-            status = currentStatus,
-            search,
-            sortBy,
-            sortDir,
-            pageNumber
-        });
-    }
 }
