@@ -5,7 +5,8 @@
     bool isMenuItems = path.StartsWithSegments("/Admin/MenuItems");
     bool isOrders = path.StartsWithSegments("/Admin/Orders");
     bool isStaff = path.StartsWithSegments("/Admin/Staff");
-    bool isReports = path.StartsWithSegments("/Admin/Reports");
+    bool isRevenueReport = path.Equals("/Admin/Reports/Revenue");
+    bool isMenuPerformanceReport = path.Equals("/Admin/Reports/MenuPerformance");
     bool isStoreOperations = path.Equals("/Admin/Operations/Store");
     bool isMenuAvailability = path.Equals("/Admin/Operations/MenuAvailability");
     bool isPromotions = path.StartsWithSegments("/Admin/Promotions");
@@ -80,9 +81,13 @@
                     </a>
                     @* Doanh thu là thông tin nhạy cảm — chỉ chủ quán xem. Ẩn link ở đây,
                        chặn thật bằng policy ManagerOnly trên /Admin/Reports trong Program.cs. *@
-                    <a class="admin-rail__link" asp-page="/Admin/Reports/Revenue" aria-current="@(isReports ? "page" : null)">
+                    <a class="admin-rail__link" asp-page="/Admin/Reports/Revenue" aria-current="@(isRevenueReport ? "page" : null)">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 13.5h11M4 13.5V9m4 4.5V5.5m4 8V3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
                         Doanh thu
+                    </a>
+                    <a class="admin-rail__link" asp-page="/Admin/Reports/MenuPerformance" aria-current="@(isMenuPerformanceReport ? "page" : null)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 13.5h11M4 11l2.5-3 2 1.5L12 5M10.5 5H12v1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        Hiệu quả món
                     </a>
                 }
             </nav>

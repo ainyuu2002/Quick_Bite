@@ -97,7 +97,15 @@ public class AppDbContext : DbContext
 
         mb.Entity<StoreSetting>()
           .ToTable(table =>
-              table.HasCheckConstraint("CK_StoreSettings_Singleton", "[Id] = 1"));
+          {
+              table.HasCheckConstraint("CK_StoreSettings_Singleton", "[Id] = 1");
+              table.HasCheckConstraint(
+                  "CK_StoreSettings_SlowItemThreshold",
+                  "[SlowItemThreshold] BETWEEN 1 AND 1000");
+              table.HasCheckConstraint(
+                  "CK_StoreSettings_BestSellerTopCount",
+                  "[BestSellerTopCount] BETWEEN 1 AND 20");
+          });
 
         mb.Entity<StoreSetting>()
           .HasOne<Account>()

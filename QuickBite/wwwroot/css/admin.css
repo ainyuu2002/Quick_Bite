@@ -47,6 +47,11 @@ body.admin-app { margin: 0; min-height: 100vh; overflow-x: clip; background: var
 .ingredient-links summary { color: var(--color-accent-strong); font-weight: 600; cursor: pointer; }
 .ingredient-checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-xs); margin: var(--space-md) 0; }
 .ingredient-check { display: flex; align-items: center; gap: var(--space-xs); color: var(--color-ink-2); font-size: var(--text-sm); }
+.menu-report-filter { align-items: end; }
+.menu-report-filter .field { flex: 1 1 150px; }
+.report-ranking-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-lg); }
+.slow-items-section, .report-settings { margin-top: var(--space-xl); }
+@media (max-width: 900px) { .report-ranking-grid { grid-template-columns: minmax(0, 1fr); } }
 .toolbar, .data-surface, .form-surface, .danger-surface { background: var(--color-surface); border: 1px solid var(--color-rule); border-radius: var(--radius-surface); box-shadow: var(--shadow-surface); }
 .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; padding: var(--space-sm); margin-bottom: var(--space-md); }
 .toolbar .input { flex: 1 1 16rem; }

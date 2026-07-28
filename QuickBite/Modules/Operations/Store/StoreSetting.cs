@@ -18,6 +18,10 @@ public sealed class StoreSetting
 
     public bool IsPaused { get; set; }
 
+    public int SlowItemThreshold { get; set; } = 5;
+
+    public int BestSellerTopCount { get; set; } = 3;
+
     [StringLength(200)]
     public string? PauseReason { get; set; }
 

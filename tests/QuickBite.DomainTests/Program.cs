@@ -2,6 +2,7 @@ using QuickBite.Models;
 using QuickBite.Modules.Operations.Authorization;
 using QuickBite.Modules.Operations.Ingredients;
 using QuickBite.Modules.Operations.MenuAvailability;
+using QuickBite.Modules.Operations.Reports;
 using QuickBite.Modules.Operations.Store;
 
 static void Assert(bool condition, string message)
@@ -110,5 +111,10 @@ var ingredientLink = new DishIngredient { DisabledMenuItem = true };
 Assert(
     ingredientLink.DisabledMenuItem,
     "Liên kết món phải ghi được việc món bị tắt tự động bởi nguyên liệu.");
+
+var reportWindow = new SaleTimeWindow(new TimeOnly(18, 0), new TimeOnly(2, 0));
+Assert(reportWindow.Contains(new TimeOnly(23, 0)), "Báo cáo phải lọc được khung giờ qua đêm.");
+Assert(reportWindow.Contains(new TimeOnly(1, 0)), "Khung báo cáo qua đêm phải gồm giờ sau nửa đêm.");
+Assert(!reportWindow.Contains(new TimeOnly(12, 0)), "Khung báo cáo phải loại giờ bên ngoài.");
 
 Console.WriteLine("Admin order domain tests passed.");
