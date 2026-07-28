@@ -1,5 +1,9 @@
 using QuickBite.Models;
 using QuickBite.Modules.Operations.Authorization;
+using QuickBite.Modules.Operations.Ingredients;
+using QuickBite.Modules.Operations.MenuAvailability;
+using QuickBite.Modules.Operations.Reports;
+using QuickBite.Modules.Operations.Store;
 
 static void Assert(bool condition, string message)
 {
@@ -43,5 +47,74 @@ Assert(InternalRoles.Manager == nameof(AccountRole.Manager), "Role claim Manager
 Assert(InternalRoles.Staff == nameof(AccountRole.Staff), "Role claim Staff không đồng bộ.");
 Assert(InternalRoles.Kitchen == nameof(AccountRole.Kitchen), "Role claim Kitchen không đồng bộ.");
 Assert(InternalRoles.Shipper == nameof(AccountRole.Shipper), "Role claim Shipper không đồng bộ.");
+
+var daytimeStore = new StoreSetting
+{
+    OpensAt = new TimeOnly(8, 0),
+    ClosesAt = new TimeOnly(22, 0)
+};
+Assert(daytimeStore.IsWithinBusinessHours(new TimeOnly(8, 0)), "Phải mở đúng giờ bắt đầu.");
+Assert(!daytimeStore.IsWithinBusinessHours(new TimeOnly(22, 0)), "Phải đóng đúng giờ kết thúc.");
+
+var overnightStore = new StoreSetting
+{
+    OpensAt = new TimeOnly(18, 0),
+    ClosesAt = new TimeOnly(2, 0)
+};
+Assert(overnightStore.IsWithinBusinessHours(new TimeOnly(23, 0)), "Ca qua đêm phải mở trước nửa đêm.");
+Assert(overnightStore.IsWithinBusinessHours(new TimeOnly(1, 0)), "Ca qua đêm phải mở sau nửa đêm.");
+Assert(!overnightStore.IsWithinBusinessHours(new TimeOnly(12, 0)), "Ca qua đêm phải đóng ngoài khung.");
+
+var alwaysOpenStore = new StoreSetting
+{
+    OpensAt = new TimeOnly(0, 0),
+    ClosesAt = new TimeOnly(0, 0)
+};
+Assert(alwaysOpenStore.IsWithinBusinessHours(new TimeOnly(12, 0)), "Giờ bằng nhau phải là mở 24 giờ.");
+
+var dailyQuota = new DailyQuota
+{
+    DailyLimit = 30,
+    ReservedQuantity = 28,
+    QuotaDate = new DateOnly(2026, 7, 28),
+    SaleStartsAt = new TimeOnly(6, 0),
+    SaleEndsAt = new TimeOnly(10, 0)
+};
+Assert(dailyQuota.RemainingQuantity == 2, "Quota còn lại phải bằng giới hạn trừ số đã giữ.");
+Assert(dailyQuota.IsWithinSaleWindow(new TimeOnly(8, 0)), "Món phải bán trong khung giờ.");
+Assert(!dailyQuota.IsWithinSaleWindow(new TimeOnly(12, 0)), "Món phải ngừng bán ngoài khung giờ.");
+dailyQuota.ResetFor(new DateOnly(2026, 7, 29));
+Assert(dailyQuota.ReservedQuantity == 0, "Quota phải reset khi sang ngày mới.");
+
+dailyQuota.SaleStartsAt = new TimeOnly(18, 0);
+dailyQuota.SaleEndsAt = new TimeOnly(2, 0);
+Assert(dailyQuota.IsWithinSaleWindow(new TimeOnly(23, 0)), "Khung bán qua đêm phải hỗ trợ trước nửa đêm.");
+Assert(dailyQuota.IsWithinSaleWindow(new TimeOnly(1, 0)), "Khung bán qua đêm phải hỗ trợ sau nửa đêm.");
+
+var approvedSession = new WorkSession
+{
+    ApprovedCheckInAt = new DateTime(2026, 7, 28, 8, 0, 0),
+    ApprovedCheckOutAt = new DateTime(2026, 7, 28, 12, 30, 0),
+    ApprovedHourlyRate = 25_000m
+};
+Assert(
+    approvedSession.ApprovedDuration == TimeSpan.FromHours(4.5),
+    "Thời gian duyệt phải tính từ hai mốc đã chốt.");
+Assert(
+    approvedSession.ApprovedSalary == 112_500m,
+    "Lương phải bằng giờ đã duyệt nhân snapshot đơn giá.");
+
+Assert(
+    IngredientStatus.OutOfStock.ToDisplayText() == "Hết",
+    "Trạng thái hết nguyên liệu phải có nhãn nghiệp vụ.");
+var ingredientLink = new DishIngredient { DisabledMenuItem = true };
+Assert(
+    ingredientLink.DisabledMenuItem,
+    "Liên kết món phải ghi được việc món bị tắt tự động bởi nguyên liệu.");
+
+var reportWindow = new SaleTimeWindow(new TimeOnly(18, 0), new TimeOnly(2, 0));
+Assert(reportWindow.Contains(new TimeOnly(23, 0)), "Báo cáo phải lọc được khung giờ qua đêm.");
+Assert(reportWindow.Contains(new TimeOnly(1, 0)), "Khung báo cáo qua đêm phải gồm giờ sau nửa đêm.");
+Assert(!reportWindow.Contains(new TimeOnly(12, 0)), "Khung báo cáo phải loại giờ bên ngoài.");
 
 Console.WriteLine("Admin order domain tests passed.");

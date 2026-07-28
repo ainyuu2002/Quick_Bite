@@ -4,6 +4,11 @@ using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Services;
 using QuickBite.Modules.Operations.Authorization;
+using QuickBite.Modules.Operations.Ingredients;
+using QuickBite.Modules.Operations.MenuAvailability;
+using QuickBite.Modules.Operations.Reports;
+using QuickBite.Modules.Operations.Store;
+using QuickBite.Modules.Operations.Workforce;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +22,13 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AllowAnonymousToPage("/Admin/Login");
     options.Conventions.AuthorizeFolder("/Admin/Orders", InternalPolicies.ReceiveOrders);
     options.Conventions.AuthorizeFolder("/Staff", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder("/Admin/Operations", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder(
+        "/Admin/Ingredients",
+        InternalPolicies.OperateKitchen);
+    options.Conventions.AuthorizePage(
+        "/Admin/Operations/MenuAvailability",
+        InternalPolicies.ManagerOnly);
     options.Conventions.AuthorizeFolder("/Admin/MenuItems", InternalPolicies.ManagerOnly);
     options.Conventions.AuthorizeFolder("/Admin/Staff", InternalPolicies.ManagerOnly);
     options.Conventions.AuthorizeFolder("/Admin/Reports", InternalPolicies.ManagerOnly);
@@ -43,6 +55,11 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<WorkSessionService>();
+builder.Services.AddScoped<IStoreAvailabilityService, StoreAvailabilityService>();
+builder.Services.AddScoped<IMenuAvailabilityService, MenuAvailabilityService>();
+builder.Services.AddScoped<IWorkSessionApprovalService, WorkSessionApprovalService>();
+builder.Services.AddScoped<IIngredientService, IngredientService>();
+builder.Services.AddScoped<IMenuPerformanceService, MenuPerformanceService>();
 builder.Services.AddScoped<CustomerAccountService>();
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<LoyaltyService>();

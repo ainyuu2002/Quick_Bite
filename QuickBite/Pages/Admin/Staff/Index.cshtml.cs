@@ -83,6 +83,33 @@ public class IndexModel : PageModel
         return RedirectToPage();
     }
 
+    public async Task<IActionResult> OnPostUpdateHourlyRateAsync(
+        int id,
+        decimal hourlyRate,
+        CancellationToken cancellationToken = default)
+    {
+        if (hourlyRate < 0 || hourlyRate > 1_000_000m)
+        {
+            TempData["ErrorMessage"] = "Đơn giá phải từ 0 đến 1.000.000đ/giờ.";
+            return RedirectToPage();
+        }
+
+        var account = await _context.Accounts
+            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (account is null)
+        {
+            TempData["ErrorMessage"] = "Không tìm thấy tài khoản.";
+            return RedirectToPage();
+        }
+
+        account.HourlyRate = hourlyRate;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        TempData["SuccessMessage"] =
+            $"Đã cập nhật đơn giá của {account.FullName ?? account.Username}.";
+        return RedirectToPage();
+    }
+
     private int GetCurrentAccountId()
         => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 }

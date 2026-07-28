@@ -1,20 +1,29 @@
 @page
 @model QuickBite.Pages.Admin.Staff.ReportModel
+@using QuickBite.Models
 
 @{
-    ViewData["Title"] = "Báo cáo chấm công";
+    ViewData["Title"] = "Duyệt công và tính lương";
 }
 
 <div class="page-header">
     <div>
-        <h1 class="page-title">Báo cáo chấm công</h1>
+        <h1 class="page-title">Duyệt công và tính lương</h1>
         <p class="page-description">
-            Thời gian trực và số đơn đã nhận của từng nhân viên theo ngày.
-            Ca làm được tính tự động theo thời gian đăng nhập &amp; giữ kết nối.
+            Máy ghi nhận hiện diện thành bản nháp; chỉ số đã duyệt mới được dùng tính lương.
         </p>
     </div>
     <a asp-page="./Index" class="btn btn--secondary">Về danh sách nhân viên</a>
 </div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert--danger" role="alert">@errorMessage</div>
+}
 
 <form method="get" asp-page="./Report" class="toolbar">
     <label class="label" for="Date">Ngày</label>
@@ -22,59 +31,143 @@
     <button type="submit" class="btn btn--secondary btn--sm">Xem</button>
     @if (Model.IsToday)
     {
-        <span class="badge badge--success">
-            @Model.StaffOnlineNow nhân viên đang trực
-        </span>
+        <span class="badge badge--success">@Model.StaffOnlineNow nhân viên đang trực</span>
     }
 </form>
 
+<h2 class="section-title">Tổng hợp theo nhân viên</h2>
 <div class="data-surface">
     <table class="table">
         <thead>
             <tr>
                 <th>Nhân viên</th>
-                <th>Vào</th>
-                <th>Ra</th>
-                <th class="num">Thời gian trực</th>
+                <th class="num">Máy ghi</th>
+                <th class="num">Đã duyệt</th>
+                <th class="num">Lương đã chốt</th>
+                <th>Ca làm</th>
                 <th class="num">Đơn đã nhận</th>
             </tr>
         </thead>
         <tbody>
             @if (!Model.Rows.Any())
             {
-                <tr>
-                    <td colspan="5"><p class="empty-state">Không có dữ liệu chấm công trong ngày này.</p></td>
-                </tr>
+                <tr><td colspan="6"><p class="empty-state">Không có dữ liệu trong ngày này.</p></td></tr>
             }
             @foreach (var row in Model.Rows)
             {
                 <tr>
                     <td>
-                        @row.Name
+                        <span class="menu-cell__name">@row.Name</span>
                         @if (row.HasOpenSession && Model.IsToday)
                         {
                             <span class="badge badge--success">đang trực</span>
                         }
                     </td>
-                    <td>@(row.FirstCheckIn?.ToString("HH:mm") ?? "—")</td>
+                    <td class="num">@ReportModel.FormatDuration(row.MachineTotal)</td>
+                    <td class="num">@ReportModel.FormatDuration(row.ApprovedTotal)</td>
+                    <td class="num">@row.ApprovedSalary.ToString("N0") đ</td>
                     <td>
-                        @if (row.HasOpenSession && Model.IsToday)
+                        <span class="badge badge--success">@row.ApprovedSessionCount đã duyệt</span>
+                        @if (row.DraftSessionCount > 0)
+                        {
+                            <span class="badge badge--muted">@row.DraftSessionCount bản nháp</span>
+                        }
+                    </td>
+                    <td class="num">@row.AcceptedOrderCount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h2 class="section-title workforce-details-title">Chi tiết từng ca</h2>
+<div class="data-surface">
+    <table class="table workforce-table">
+        <thead>
+            <tr>
+                <th>Nhân viên</th>
+                <th>Máy ghi</th>
+                <th>Trạng thái</th>
+                <th>Dữ liệu duyệt</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Sessions.Any())
+            {
+                <tr><td colspan="4"><p class="empty-state">Không có ca làm trong ngày này.</p></td></tr>
+            }
+            @foreach (var session in Model.Sessions)
+            {
+                <tr>
+                    <td><span class="menu-cell__name">@session.AccountName</span></td>
+                    <td>
+                        <time>@session.CheckInAt.ToString("HH:mm")</time>
+                        –
+                        @if (session.CheckOutAt is null)
                         {
                             <span class="muted">đang trực</span>
                         }
                         else
                         {
-                            @(row.LastCheckOut?.ToString("HH:mm") ?? "—")
+                            <time>@session.CheckOutAt.Value.ToString("HH:mm")</time>
                         }
                     </td>
-                    <td class="num">
-                        @QuickBite.Pages.Admin.Staff.ReportModel.FormatDuration(row.TotalWorked)
-                        @if (row.HasOpenSession && Model.IsToday)
+                    <td>
+                        @if (session.ApprovalStatus == WorkSessionApprovalStatus.Approved)
                         {
-                            <span class="muted">(đang tính)</span>
+                            <span class="badge badge--success">Đã duyệt</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge--muted">Bản nháp</span>
                         }
                     </td>
-                    <td class="num">@row.AcceptedOrderCount</td>
+                    <td>
+                        @if (session.ApprovalStatus == WorkSessionApprovalStatus.Approved)
+                        {
+                            <div class="approved-session">
+                                <span>
+                                    @session.ApprovedCheckInAt?.ToString("HH:mm")
+                                    – @session.ApprovedCheckOutAt?.ToString("HH:mm")
+                                </span>
+                                <span>@session.ApprovedHourlyRate?.ToString("N0") đ/giờ</span>
+                                <strong>@session.ApprovedSalary?.ToString("N0") đ</strong>
+                                @if (!string.IsNullOrWhiteSpace(session.ApprovalNote))
+                                {
+                                    <span class="muted">@session.ApprovalNote</span>
+                                }
+                            </div>
+                        }
+                        else if (session.CheckOutAt is not null)
+                        {
+                            <form method="post" asp-page-handler="Approve" class="approval-form">
+                                <input type="hidden" name="Date" value="@Model.Date.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="Input.WorkSessionId" value="@session.Id" />
+                                <label>
+                                    <span class="visually-hidden">Giờ vào được duyệt</span>
+                                    <input type="datetime-local" name="Input.ApprovedCheckInAt"
+                                           value="@session.CheckInAt.ToString("yyyy-MM-ddTHH:mm")"
+                                           class="input approval-form__datetime" />
+                                </label>
+                                <label>
+                                    <span class="visually-hidden">Giờ ra được duyệt</span>
+                                    <input type="datetime-local" name="Input.ApprovedCheckOutAt"
+                                           value="@session.CheckOutAt.Value.ToString("yyyy-MM-ddTHH:mm")"
+                                           class="input approval-form__datetime" />
+                                </label>
+                                <label class="approval-form__note">
+                                    <span class="visually-hidden">Ghi chú điều chỉnh</span>
+                                    <input type="text" name="Input.Note" maxlength="500"
+                                           placeholder="Ghi chú nếu sửa giờ" class="input" />
+                                </label>
+                                <button type="submit" class="btn btn--primary btn--sm">Chốt duyệt</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="muted">Chờ kết thúc ca mới được duyệt</span>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
