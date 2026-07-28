@@ -46,6 +46,17 @@ public class Order
 
     public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Unpaid;
 
+    public bool IsPartyOrder { get; set; }
+
+    public DateTime? ScheduledFor { get; set; }
+
+    [Column(TypeName = "decimal(18,0)")]
+    public decimal DepositAmount { get; set; }
+
+    public bool DepositPaid { get; set; }
+
+    public DateTime? ApprovedAt { get; set; }
+
     /// <summary>
     /// Nhân viên đã bấm "Nhận đơn" (Pending → Accepted). Null = chưa ai nhận.
     /// Chốt một lần, không đổi khi đơn đi tiếp các trạng thái sau.

@@ -67,6 +67,21 @@ else
                             <span asp-validation-for="Input.Address" class="text-danger"></span>
                         </div>
 
+                        @if (Model.IsParty)
+                        {
+                            <div class="alert alert-warning">
+                                <strong>Đơn đặt tiệc</strong> (trên @Model.PartyThreshold.ToString("N0")đ tiền món):
+                                cần hẹn giờ nhận trước tối thiểu @Model.PartyMinLeadHours giờ và đặt cọc
+                                @Model.PartyDepositPercent% (~@Model.EstimatedDeposit.ToString("N0")đ).
+                                Quán sẽ xét duyệt trước khi nhận đơn.
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Input.ScheduledFor" class="form-label"></label>
+                                <input asp-for="Input.ScheduledFor" type="datetime-local" class="form-control" />
+                                <span asp-validation-for="Input.ScheduledFor" class="text-danger"></span>
+                            </div>
+                        }
+
                         <div class="mb-0">
                             <label asp-for="Input.Note" class="form-label"></label>
                             <textarea asp-for="Input.Note" class="form-control" rows="4"

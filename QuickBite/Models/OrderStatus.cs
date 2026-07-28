@@ -12,7 +12,8 @@ public enum OrderStatus
     Delivering = 7,
     Expired = 8,
     DeliveryFailed = 9,
-    NoShow = 10
+    NoShow = 10,
+    PendingReview = 11
 }
 
 public static class OrderStatusExtensions
@@ -20,6 +21,7 @@ public static class OrderStatusExtensions
     public static string ToDisplayText(this OrderStatus status) => status switch
     {
         OrderStatus.Pending => "Chờ xác nhận",
+        OrderStatus.PendingReview => "Chờ xét duyệt",
         OrderStatus.Confirmed => "Đã xác nhận",
         OrderStatus.Preparing => "Đang chuẩn bị",
         OrderStatus.Ready => "Sẵn sàng",
@@ -35,10 +37,10 @@ public static class OrderStatusExtensions
 
     public static bool CanTransitionTo(this OrderStatus current, OrderStatus next) => next switch
     {
-        OrderStatus.Confirmed => current is OrderStatus.Pending,
-        OrderStatus.Rejected => current is OrderStatus.Pending,
+        OrderStatus.Confirmed => current is OrderStatus.Pending or OrderStatus.PendingReview,
+        OrderStatus.Rejected => current is OrderStatus.Pending or OrderStatus.PendingReview,
         OrderStatus.Cancelled => current is OrderStatus.Pending,
-        OrderStatus.Expired => current is OrderStatus.Pending,
+        OrderStatus.Expired => current is OrderStatus.Pending or OrderStatus.PendingReview,
         OrderStatus.Preparing => current is OrderStatus.Confirmed,
         OrderStatus.Ready => current is OrderStatus.Preparing,
         OrderStatus.Delivering => current is OrderStatus.Ready,

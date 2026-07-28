@@ -5,9 +5,10 @@
     ViewData["Title"] = "Theo dõi đơn hàng";
     var order = Model.Order;
     var isDelivery = order?.OrderType == OrderType.Delivery;
+    var startStatus = order?.IsPartyOrder == true ? OrderStatus.PendingReview : OrderStatus.Pending;
     var progressStatuses = isDelivery
-        ? new[] { OrderStatus.Pending, OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Delivering, OrderStatus.Completed }
-        : new[] { OrderStatus.Pending, OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Completed };
+        ? new[] { startStatus, OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Delivering, OrderStatus.Completed }
+        : new[] { startStatus, OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Completed };
     var badStatuses = new[] { OrderStatus.Cancelled, OrderStatus.Rejected, OrderStatus.Expired, OrderStatus.DeliveryFailed, OrderStatus.NoShow };
     var isBad = order != null && badStatuses.Contains(order.Status);
     var currentIndex = order == null ? -1 : Array.IndexOf(progressStatuses, order.Status);
@@ -78,6 +79,26 @@
                 </div>
             </div>
         </div>
+
+        @if (order.IsPartyOrder)
+        {
+            <div class="alert alert-info">
+                🎉 <strong>Đơn đặt tiệc</strong> — nhận lúc @(order.ScheduledFor?.ToString("HH:mm dd/MM/yyyy") ?? "—").
+                Cọc @order.DepositAmount.ToString("N0")đ:
+                @if (order.DepositPaid)
+                {
+                    <text>đã cọc.</text>
+                }
+                else if (order.ApprovedAt != null)
+                {
+                    <text>quán đã duyệt — vui lòng đặt cọc để quán bắt đầu chuẩn bị.</text>
+                }
+                else
+                {
+                    <text>đang chờ quán xét duyệt.</text>
+                }
+            </div>
+        }
 
         @if (isBad)
         {

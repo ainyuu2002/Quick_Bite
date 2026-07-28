@@ -227,4 +227,56 @@ public class IndexModel : PageModel
         });
     }
 
+    public async Task<IActionResult> OnPostApprovePartyAsync(
+        int orderId,
+        OrderStatus currentStatus = OrderStatus.PendingReview,
+        string? search = null,
+        string sortBy = "date",
+        string sortDir = "asc",
+        int pageNumber = 1,
+        CancellationToken cancellationToken = default)
+    {
+        currentStatus = Enum.IsDefined(currentStatus) ? currentStatus : OrderStatus.PendingReview;
+        var actorAccountId = int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId) ? accountId : (int?)null;
+
+        try
+        {
+            await _orderService.ApprovePartyAsync(orderId, actorAccountId, cancellationToken);
+            TempData["SuccessMessage"] = $"Đã duyệt đơn tiệc #{orderId}. Chờ khách đặt cọc.";
+        }
+        catch (Exception exception) when (exception is OrderValidationException or KeyNotFoundException)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToPage(new { status = currentStatus, search, sortBy, sortDir, pageNumber });
+    }
+
+    public async Task<IActionResult> OnPostRecordDepositAsync(
+        int orderId,
+        OrderStatus currentStatus = OrderStatus.PendingReview,
+        string? search = null,
+        string sortBy = "date",
+        string sortDir = "asc",
+        int pageNumber = 1,
+        CancellationToken cancellationToken = default)
+    {
+        currentStatus = Enum.IsDefined(currentStatus) ? currentStatus : OrderStatus.PendingReview;
+        var actorAccountId = int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId) ? accountId : (int?)null;
+
+        try
+        {
+            await _orderService.RecordDepositAsync(orderId, actorAccountId, cancellationToken);
+            TempData["SuccessMessage"] = $"Đã ghi nhận cọc đơn #{orderId}. Đơn chuyển sang chuẩn bị.";
+        }
+        catch (Exception exception) when (exception is OrderValidationException or KeyNotFoundException)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToPage(new { status = currentStatus, search, sortBy, sortDir, pageNumber });
+    }
+
 }

@@ -18,6 +18,8 @@ public sealed record CreateOrderRequest(
     string? Note,
     OrderType OrderType,
     PaymentMethod PaymentMethod,
+    bool IsParty,
+    DateTime? ScheduledFor,
     IReadOnlyCollection<CreateOrderItem> Items);
 
 public sealed class OrderValidationException : Exception
@@ -83,10 +85,11 @@ public sealed class OrderService
             .Select(group => new CreateOrderItem(group.Key, group.Sum(item => item.Quantity)))
             .ToArray();
 
-        if (normalizedItems.Any(item => item.Quantity > MaximumQuantityPerItem))
+        if (!request.IsParty && normalizedItems.Any(item => item.Quantity > MaximumQuantityPerItem))
         {
             throw new OrderValidationException(
-                $"Mỗi món chỉ được đặt tối đa {MaximumQuantityPerItem} phần trong một đơn.");
+                $"Mỗi món chỉ được đặt tối đa {MaximumQuantityPerItem} phần trong một đơn thường. " +
+                "Số lượng lớn vui lòng dùng chức năng Đặt tiệc.");
         }
 
         var menuItemIds = normalizedItems.Select(item => item.MenuItemId).ToArray();
@@ -126,13 +129,34 @@ public sealed class OrderService
 
         var subtotal = normalizedItems.Sum(item => menuItems[item.MenuItemId].Price * item.Quantity);
 
-        if (subtotal > _options.MaxOrderTotal)
+        DateTime? scheduledFor = null;
+        var depositAmount = 0m;
+
+        if (request.IsParty)
+        {
+            if (request.ScheduledFor is not DateTime scheduled)
+            {
+                throw new OrderValidationException("Đơn đặt tiệc cần chọn thời gian nhận.");
+            }
+
+            var earliest = DateTime.Now.AddHours(_options.PartyMinLeadHours);
+            if (scheduled < earliest)
+            {
+                throw new OrderValidationException(
+                    $"Đơn đặt tiệc phải hẹn nhận trước tối thiểu {_options.PartyMinLeadHours} giờ.");
+            }
+
+            scheduledFor = scheduled;
+            depositAmount = Math.Round(subtotal * _options.PartyDepositPercent / 100m, 0);
+        }
+        else if (subtotal > _options.PartyThreshold)
         {
             throw new OrderValidationException(
-                $"Đơn vượt {_options.MaxOrderTotal:N0}đ tiền món. Đơn lớn vui lòng liên hệ quán để đặt (cần đặt cọc trước).");
+                $"Đơn trên {_options.PartyThreshold:N0}đ tiền món vui lòng dùng chức năng Đặt tiệc (hẹn giờ trước và đặt cọc).");
         }
 
-        if (request.OrderType == OrderType.Delivery && subtotal < _options.MinimumDeliverySubtotal)
+        if (request.OrderType == OrderType.Delivery && !request.IsParty
+            && subtotal < _options.MinimumDeliverySubtotal)
         {
             throw new OrderValidationException(
                 $"Đơn giao hàng tối thiểu {_options.MinimumDeliverySubtotal:N0}đ tiền món (chưa gồm phí giao).");
@@ -156,7 +180,10 @@ public sealed class OrderService
                 : PaymentStatus.Unpaid,
             DeliveryFee = deliveryFee,
             OrderCode = orderCode,
-            Status = OrderStatus.Pending,
+            IsPartyOrder = request.IsParty,
+            ScheduledFor = scheduledFor,
+            DepositAmount = depositAmount,
+            Status = request.IsParty ? OrderStatus.PendingReview : OrderStatus.Pending,
             CreatedAt = DateTime.Now
         };
 
@@ -338,6 +365,56 @@ public sealed class OrderService
         await PublishStatusEventAsync(order, trimmedReason, cancellationToken);
 
         return order;
+    }
+
+    public async Task<Order> ApprovePartyAsync(
+        int orderId,
+        int? actorAccountId,
+        CancellationToken cancellationToken = default)
+    {
+        var order = await _db.Orders
+            .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
+
+        if (!order.IsPartyOrder || order.Status != OrderStatus.PendingReview || order.ApprovedAt is not null)
+        {
+            throw new OrderValidationException("Đơn tiệc này không ở trạng thái chờ duyệt.");
+        }
+
+        order.ApprovedAt = DateTime.Now;
+        if (order.AcceptedByAccountId is null)
+        {
+            order.AcceptedByAccountId = actorAccountId;
+            order.AcceptedAt = DateTime.Now;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        await NotifyStatusChangedAsync(order, cancellationToken);
+
+        return order;
+    }
+
+    public async Task<Order> RecordDepositAsync(
+        int orderId,
+        int? actorAccountId,
+        CancellationToken cancellationToken = default)
+    {
+        var order = await _db.Orders
+            .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
+
+        if (!order.IsPartyOrder || order.Status != OrderStatus.PendingReview || order.ApprovedAt is null)
+        {
+            throw new OrderValidationException("Đơn tiệc phải được duyệt trước khi ghi nhận cọc.");
+        }
+
+        if (!order.DepositPaid)
+        {
+            order.DepositPaid = true;
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return await ChangeStatusAsync(orderId, OrderStatus.Confirmed, actorAccountId, null, cancellationToken);
     }
 
     private void AddStatusHistory(

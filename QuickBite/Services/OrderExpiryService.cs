@@ -89,6 +89,26 @@ public sealed class OrderExpiryService : BackgroundService
                 "Quá thời gian giữ đơn, khách không đến lấy.",
                 cancellationToken);
         }
+
+        var depositCutoff = now.AddMinutes(-_options.PartyDepositTimeoutMinutes);
+        var depositExpiredIds = await db.Orders
+            .Where(order => order.Status == OrderStatus.PendingReview
+                && order.IsPartyOrder
+                && order.ApprovedAt != null
+                && !order.DepositPaid
+                && order.ApprovedAt < depositCutoff)
+            .Select(order => order.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var orderId in depositExpiredIds)
+        {
+            await TryChangeAsync(
+                orderService,
+                orderId,
+                OrderStatus.Expired,
+                "Quá hạn đặt cọc đơn tiệc.",
+                cancellationToken);
+        }
     }
 
     private async Task TryChangeAsync(

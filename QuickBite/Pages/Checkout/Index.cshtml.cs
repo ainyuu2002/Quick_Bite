@@ -24,6 +24,16 @@ public sealed class IndexModel : PageModel
 
     public decimal MinimumDeliverySubtotal => _options.MinimumDeliverySubtotal;
 
+    public decimal PartyThreshold => _options.PartyThreshold;
+
+    public int PartyDepositPercent => _options.PartyDepositPercent;
+
+    public int PartyMinLeadHours => _options.PartyMinLeadHours;
+
+    public bool IsParty => Total > _options.PartyThreshold;
+
+    public decimal EstimatedDeposit => Math.Round(Total * _options.PartyDepositPercent / 100m, 0);
+
     [BindProperty]
     public CheckoutInput Input { get; set; } = new();
 
@@ -52,6 +62,20 @@ public sealed class IndexModel : PageModel
             ModelState.AddModelError("Input.Address", "Vui lòng nhập địa chỉ giao hàng.");
         }
 
+        if (IsParty)
+        {
+            var earliest = DateTime.Now.AddHours(_options.PartyMinLeadHours);
+            if (Input.ScheduledFor is null)
+            {
+                ModelState.AddModelError("Input.ScheduledFor", "Vui lòng chọn thời gian nhận tiệc.");
+            }
+            else if (Input.ScheduledFor < earliest)
+            {
+                ModelState.AddModelError("Input.ScheduledFor",
+                    $"Phải hẹn trước tối thiểu {_options.PartyMinLeadHours} giờ.");
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -67,6 +91,8 @@ public sealed class IndexModel : PageModel
                     Input.Note,
                     Input.OrderType,
                     Input.PaymentMethod!.Value,
+                    IsParty,
+                    Input.ScheduledFor,
                     Cart.Select(item => new CreateOrderItem(item.MenuItemId, item.Quantity)).ToArray()),
                 cancellationToken);
 
@@ -126,6 +152,9 @@ public sealed class IndexModel : PageModel
         [StringLength(500, ErrorMessage = "Ghi chú không được vượt quá 500 ký tự.")]
         [Display(Name = "Ghi chú")]
         public string? Note { get; set; }
+
+        [Display(Name = "Thời gian nhận tiệc")]
+        public DateTime? ScheduledFor { get; set; }
 
         [Required(ErrorMessage = "Vui lòng chọn phương thức thanh toán.")]
         [Display(Name = "Phương thức thanh toán")]

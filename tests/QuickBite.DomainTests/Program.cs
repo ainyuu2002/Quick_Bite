@@ -79,6 +79,13 @@ Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.Completed, OrderType.Pickup
 Assert(!OrderStatus.Ready.CanTransitionTo(OrderStatus.Delivering, OrderType.Pickup), "Đơn Pickup không có bước Delivering.");
 Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.NoShow, OrderType.Pickup), "Đơn Pickup: Ready -> NoShow.");
 
+Assert(OrderStatus.PendingReview.CanTransitionTo(OrderStatus.Confirmed), "Đặt tiệc: PendingReview -> Confirmed (sau cọc).");
+Assert(OrderStatus.PendingReview.CanTransitionTo(OrderStatus.Rejected), "Đặt tiệc: PendingReview -> Rejected.");
+Assert(OrderStatus.PendingReview.CanTransitionTo(OrderStatus.Expired), "Đặt tiệc: PendingReview -> Expired (quá hạn cọc).");
+Assert(!OrderStatus.PendingReview.CanTransitionTo(OrderStatus.Preparing), "PendingReview không nhảy thẳng Preparing.");
+Assert(!OrderStatus.Pending.CanTransitionTo(OrderStatus.PendingReview), "Không có đường quay về PendingReview.");
+Assert(!OrderStatus.PendingReview.IsTerminal(), "PendingReview chưa phải trạng thái kết thúc.");
+
 Console.WriteLine("Order state machine v2 tests passed.");
 
 const string codeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

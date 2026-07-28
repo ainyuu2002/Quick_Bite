@@ -156,8 +156,19 @@
                                 <dl class="order-meta">
                                     <div>
                                         <dt>Hình thức</dt>
-                                        <dd>@order.OrderType.ToDisplayText()</dd>
+                                        <dd>@order.OrderType.ToDisplayText()@(order.IsPartyOrder ? " · 🎉 Đặt tiệc" : "")</dd>
                                     </div>
+                                    @if (order.IsPartyOrder)
+                                    {
+                                        <div>
+                                            <dt>Thông tin tiệc</dt>
+                                            <dd>
+                                                Nhận lúc: @(order.ScheduledFor?.ToString("HH:mm dd/MM/yyyy") ?? "—")<br />
+                                                Cọc @order.DepositAmount.ToString("N0") đ —
+                                                @(order.DepositPaid ? "đã cọc" : (order.ApprovedAt != null ? "đã duyệt, chờ cọc" : "chờ duyệt"))
+                                            </dd>
+                                        </div>
+                                    }
                                     <div>
                                         <dt>Địa chỉ giao hàng</dt>
                                         <dd>@(order.OrderType == OrderType.Pickup ? "Nhận tại quán" : (order.Address ?? "—"))</dd>
@@ -262,42 +273,91 @@
                                 }
 
                                 <div class="order-actions">
-                                    @{
-                                        var nextStatuses = QuickBite.Pages.Admin.Orders.IndexModel.AdminNextStatuses(order.Status, order.OrderType);
-                                    }
-                                    @if (order.Status.IsTerminal())
+                                    @if (order.Status == OrderStatus.PendingReview && order.IsPartyOrder)
                                     {
-                                        <span class="badge badge--muted">Đơn đã kết thúc</span>
-                                    }
-                                    @foreach (var next in nextStatuses)
-                                    {
-                                        var needsReason = next.RequiresReason();
+                                        @if (order.ApprovedAt is null)
+                                        {
+                                            <form method="post" asp-page-handler="ApproveParty" class="order-action-form">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                <button class="btn btn--primary btn--sm" type="submit">Duyệt đơn tiệc</button>
+                                            </form>
+                                        }
+                                        else if (!order.DepositPaid)
+                                        {
+                                            <form method="post" asp-page-handler="RecordDeposit" class="order-action-form">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                <button class="btn btn--primary btn--sm" type="submit">Đã nhận cọc (@order.DepositAmount.ToString("N0")đ)</button>
+                                            </form>
+                                        }
                                         <form method="post" asp-page-handler="ChangeStatus" class="order-action-form">
                                             <input type="hidden" name="orderId" value="@order.Id" />
-                                            <input type="hidden" name="nextStatus" value="@next" />
+                                            <input type="hidden" name="nextStatus" value="@OrderStatus.Rejected" />
                                             <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
                                             <input type="hidden" name="search" value="@Model.Search" />
                                             <input type="hidden" name="sortBy" value="@Model.SortBy" />
                                             <input type="hidden" name="sortDir" value="@Model.SortDir" />
                                             <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
-                                            @if (needsReason)
-                                            {
-                                                <span class="reason-group" data-reason-group>
-                                                    <select name="reason" class="input" required aria-label="Lý do @next.ToDisplayText()" data-reason-select>
-                                                        <option value="">— Chọn lý do —</option>
-                                                        @foreach (var reasonOption in Model.ReasonsFor(next))
-                                                        {
-                                                            <option value="@reasonOption.Text">@reasonOption.Text</option>
-                                                        }
-                                                        <option value="__other__">Khác…</option>
-                                                    </select>
-                                                    <input type="text" name="reasonOther" class="input" placeholder="Nhập lý do" data-reason-other hidden />
-                                                </span>
-                                            }
-                                            <button class="btn @(needsReason ? "btn--danger-quiet" : "btn--primary") btn--sm" type="submit">
-                                                @next.ToDisplayText()
-                                            </button>
+                                            <span class="reason-group" data-reason-group>
+                                                <select name="reason" class="input" required aria-label="Lý do từ chối" data-reason-select>
+                                                    <option value="">— Chọn lý do —</option>
+                                                    @foreach (var reasonOption in Model.ReasonsFor(OrderStatus.Rejected))
+                                                    {
+                                                        <option value="@reasonOption.Text">@reasonOption.Text</option>
+                                                    }
+                                                    <option value="__other__">Khác…</option>
+                                                </select>
+                                                <input type="text" name="reasonOther" class="input" placeholder="Nhập lý do" data-reason-other hidden />
+                                            </span>
+                                            <button class="btn btn--danger-quiet btn--sm" type="submit">Từ chối</button>
                                         </form>
+                                    }
+                                    else
+                                    {
+                                        var nextStatuses = QuickBite.Pages.Admin.Orders.IndexModel.AdminNextStatuses(order.Status, order.OrderType);
+                                        @if (order.Status.IsTerminal())
+                                        {
+                                            <span class="badge badge--muted">Đơn đã kết thúc</span>
+                                        }
+                                        @foreach (var next in nextStatuses)
+                                        {
+                                            var needsReason = next.RequiresReason();
+                                            <form method="post" asp-page-handler="ChangeStatus" class="order-action-form">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <input type="hidden" name="nextStatus" value="@next" />
+                                                <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                @if (needsReason)
+                                                {
+                                                    <span class="reason-group" data-reason-group>
+                                                        <select name="reason" class="input" required aria-label="Lý do @next.ToDisplayText()" data-reason-select>
+                                                            <option value="">— Chọn lý do —</option>
+                                                            @foreach (var reasonOption in Model.ReasonsFor(next))
+                                                            {
+                                                                <option value="@reasonOption.Text">@reasonOption.Text</option>
+                                                            }
+                                                            <option value="__other__">Khác…</option>
+                                                        </select>
+                                                        <input type="text" name="reasonOther" class="input" placeholder="Nhập lý do" data-reason-other hidden />
+                                                    </span>
+                                                }
+                                                <button class="btn @(needsReason ? "btn--danger-quiet" : "btn--primary") btn--sm" type="submit">
+                                                    @next.ToDisplayText()
+                                                </button>
+                                            </form>
+                                        }
                                     }
                                 </div>
                             </div>
