@@ -11,17 +11,10 @@ public sealed class IndexModel : PageModel
 {
     private const string CartKey = "Cart";
     private readonly OrderService _orderService;
-    private readonly CustomerAccountService _accounts;
-    private readonly LoyaltyService _loyalty;
 
-    public IndexModel(
-        OrderService orderService,
-        CustomerAccountService accounts,
-        LoyaltyService loyalty)
+    public IndexModel(OrderService orderService)
     {
         _orderService = orderService;
-        _accounts = accounts;
-        _loyalty = loyalty;
     }
 
     [BindProperty]
@@ -33,49 +26,14 @@ public sealed class IndexModel : PageModel
 
     public int TotalQuantity => Cart.Sum(item => item.Quantity);
 
-    public bool IsMember { get; private set; }
-
-    public IReadOnlyList<Voucher> AvailableVouchers { get; private set; } = [];
-
-    public int PotentialPoints => LoyaltyService.PointsFor(Total);
-
-    public async Task OnGetAsync(CancellationToken cancellationToken)
+    public void OnGet()
     {
         LoadCart();
-
-        var customerId = await CustomerAuth.GetCustomerIdAsync(HttpContext);
-        if (customerId is null)
-        {
-            return;
-        }
-
-        var customer = await _accounts.GetAsync(customerId.Value, cancellationToken);
-        if (customer is null)
-        {
-            return;
-        }
-
-        IsMember = true;
-        Input.CustomerName = customer.FullName;
-        Input.Phone = customer.Phone;
-        if (!string.IsNullOrWhiteSpace(customer.SavedAddress))
-        {
-            Input.Address = customer.SavedAddress;
-        }
-
-        await LoadAvailableVouchersAsync(customerId.Value, cancellationToken);
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
         LoadCart();
-
-        var customerId = await CustomerAuth.GetCustomerIdAsync(HttpContext);
-        IsMember = customerId is not null;
-        if (customerId is not null)
-        {
-            await LoadAvailableVouchersAsync(customerId.Value, cancellationToken);
-        }
 
         if (Cart.Count == 0)
         {
@@ -96,10 +54,7 @@ public sealed class IndexModel : PageModel
                     Input.Address,
                     Input.Note,
                     Input.PaymentMethod!.Value,
-                    Cart.Select(item => new CreateOrderItem(item.MenuItemId, item.Quantity)).ToArray(),
-                    customerId,
-                    Input.PromotionCode,
-                    Input.VoucherCode),
+                    Cart.Select(item => new CreateOrderItem(item.MenuItemId, item.Quantity)).ToArray()),
                 cancellationToken);
 
             HttpContext.Session.Remove(CartKey);
@@ -111,17 +66,6 @@ public sealed class IndexModel : PageModel
             ModelState.AddModelError(string.Empty, exception.Message);
             return Page();
         }
-    }
-
-    private async Task LoadAvailableVouchersAsync(
-        int customerId,
-        CancellationToken cancellationToken)
-    {
-        var vouchers = await _loyalty.GetVouchersAsync(customerId, cancellationToken);
-        AvailableVouchers = vouchers
-            .Where(v => v.UsedAt is null && v.ExpiresAt >= DateTime.Now)
-            .OrderBy(v => v.ExpiresAt)
-            .ToList();
     }
 
     private void LoadCart()
@@ -172,13 +116,5 @@ public sealed class IndexModel : PageModel
         [Required(ErrorMessage = "Vui lòng chọn phương thức thanh toán.")]
         [Display(Name = "Phương thức thanh toán")]
         public PaymentMethod? PaymentMethod { get; set; } = QuickBite.Models.PaymentMethod.Cash;
-
-        [StringLength(30, ErrorMessage = "Mã khuyến mãi không hợp lệ.")]
-        [Display(Name = "Mã khuyến mãi")]
-        public string? PromotionCode { get; set; }
-
-        [StringLength(30, ErrorMessage = "Mã voucher không hợp lệ.")]
-        [Display(Name = "Voucher của bạn")]
-        public string? VoucherCode { get; set; }
     }
 }

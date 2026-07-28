@@ -1,72 +1,36 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using QuickBite.Services;
 
 namespace QuickBite.Hubs
 {
+    /// <summary>
+    /// Hub theo SDS mục 3.2 — chỉ lo join/leave group.
+    /// Sự kiện nghiệp vụ gửi từ PageModel/service qua IHubContext&lt;OrderHub&gt;, không gọi hub trực tiếp.
+    /// </summary>
     public class OrderHub : Hub
     {
         private readonly ConnectionTracker _tracker;
-        private readonly WorkSessionService _workSessions;
 
-        // WorkSessionService là scoped: mỗi lần SignalR gọi một method của hub, nó tạo một
-        // DI scope riêng, nên inject service scoped (kèm AppDbContext) vào đây là hợp lệ.
-        public OrderHub(ConnectionTracker tracker, WorkSessionService workSessions)
-        {
-            _tracker = tracker;
-            _workSessions = workSessions;
-        }
+        public OrderHub(ConnectionTracker tracker) => _tracker = tracker;
 
-        /// <summary>
-        /// Chỉ tài khoản đã đăng nhập mới vào được nhóm "staff".
-        /// [Authorize] đặt ở MỨC METHOD, không phải mức class — vì khách vãng lai
-        /// (chưa đăng nhập) vẫn phải gọi được WatchOrder để theo dõi đơn của họ.
-        /// </summary>
-        [Authorize]
+        /// <summary>Màn hình admin/staff gọi sau khi connect (admin-orders.js).</summary>
         public async Task JoinStaff()
         {
-            var accountId = GetAccountId();
-            if (accountId is null)
-            {
-                return;     // không đọc được danh tính → không chấm công, không vào group
-            }
-
-            var username = Context.User?.Identity?.Name ?? string.Empty;
-
+            _tracker.Add(Context.ConnectionId, "staff");
             await Groups.AddToGroupAsync(Context.ConnectionId, "staff");
-
-            // Chỉ kết nối ĐẦU TIÊN của tài khoản mới mở ca (0 → 1).
-            var isFirstConnection = _tracker.Connect(Context.ConnectionId, accountId.Value, username);
-            if (isFirstConnection)
-            {
-                await _workSessions.OpenAsync(accountId.Value);
-            }
-
+            // Bổ sung ngoài SDS gốc (đã ghi vào SDS 3.3): số màn hình staff online realtime
             await Clients.Group("staff").SendAsync("StaffOnlineChanged", _tracker.StaffOnline);
         }
 
+        /// <summary>Khách mở trang theo dõi đơn gọi để nhận OrderStatusChanged của đơn đó (order-track.js).</summary>
         public Task WatchOrder(int orderId)
             => Groups.AddToGroupAsync(Context.ConnectionId, $"order-{orderId}");
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            // Chỉ kết nối CUỐI CÙNG của tài khoản mới đóng ca (1 → 0).
-            // Trả null nếu người đó còn tab khác, hoặc đây là kết nối của khách vãng lai.
-            var closedAccountId = _tracker.Disconnect(Context.ConnectionId);
-            if (closedAccountId is not null)
-            {
-                await _workSessions.CloseAsync(closedAccountId.Value);
-                await Clients.Group("staff").SendAsync("StaffOnlineChanged", _tracker.StaffOnline);
-            }
-
+            _tracker.Remove(Context.ConnectionId);
+            await Clients.Group("staff").SendAsync("StaffOnlineChanged", _tracker.StaffOnline);
             await base.OnDisconnectedAsync(exception);
         }
-
-        private int? GetAccountId()
-            => int.TryParse(
-                Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id)
-                ? id
-                : null;
     }
 }

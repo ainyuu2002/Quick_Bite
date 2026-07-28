@@ -32,16 +32,6 @@
     </div>
 </div>
 
-@if (TempData["SuccessMessage"] is string successMessage)
-{
-    <div class="alert alert--success" role="status">@successMessage</div>
-}
-
-@if (TempData["ErrorMessage"] is string errorMessage)
-{
-    <div class="alert alert--danger" role="alert">@errorMessage</div>
-}
-
 <nav class="tabs" aria-label="Lọc theo trạng thái">
     @foreach (var status in Enum.GetValues<OrderStatus>())
     {
@@ -71,24 +61,12 @@
 </form>
 
 <p class="result-summary" role="status">
-    @* id riêng để JS cập nhật được con số sau khi làm mới bảng, mà không xoá mất chỉ báo kết nối *@
-    <span id="resultCount">Tìm thấy @Model.Result.TotalCount đơn hàng trong trạng thái @Model.CurrentStatus.ToDisplayText().</span>
-    <span class="live-dot" id="liveDot" title="Đang kết nối thời gian thực" hidden></span>
-    <span class="live-label" id="liveLabel" hidden>Trực tuyến</span>
-    <span class="badge badge--muted">
-        <span id="staffOnline">@Model.StaffOnline</span> nhân viên đang trực
-    </span>
+    Tìm thấy @Model.Result.TotalCount đơn hàng trong trạng thái @Model.CurrentStatus.ToDisplayText().
 </p>
 
-@* FR-17: băng thông báo khi có đơn mới / đơn đổi trạng thái ngoài phạm vi trang đang xem *@
-<div class="alert alert--info live-banner" id="liveBanner" role="status" hidden>
-    <span id="liveBannerText"></span>
-    <a class="btn btn--secondary btn--sm" href="javascript:location.reload()">Tải lại</a>
-</div>
-
-@* Bảng luôn được render, kể cả khi rỗng: SignalR cần sẵn <tbody> để chèn đơn mới vào.
-   Trạng thái rỗng là một hàng trong bảng, JS sẽ gỡ nó khi có đơn đầu tiên tới. *@
 <div class="data-surface">
+    @if (Model.Result.Items.Any())
+    {
     <table class="table">
         <thead>
             <tr>
@@ -101,20 +79,12 @@
                 <th aria-sort="@AriaSort("date")">
                     <a href="@SortLink("date")">Thời gian đặt<span aria-hidden="true">@SortArrow("date")</span></a>
                 </th>
-                <th>Trạng thái</th>
-                <th>Người nhận</th>
             </tr>
         </thead>
-        <tbody id="ordersTableBody" data-current-status="@((int)Model.CurrentStatus)">
-            @if (!Model.Result.Items.Any())
-            {
-                <tr id="emptyRow">
-                    <td colspan="7"><p class="empty-state">Không có đơn nào khớp điều kiện.</p></td>
-                </tr>
-            }
+        <tbody>
             @foreach (var order in Model.Result.Items)
             {
-                <tr data-order-id="@order.Id">
+                <tr>
                     <td><span class="order-id">#@order.Id</span></td>
                     <td>@order.CustomerName</td>
                     <td>@order.Phone</td>
@@ -124,120 +94,15 @@
                             @order.CreatedAt.ToString("HH:mm dd/MM/yyyy")
                         </time>
                     </td>
-                    <td class="order-status-cell"><span class="badge badge--muted">@order.Status.ToDisplayText()</span></td>
-                    <td>
-                        @if (order.AcceptedByAccount is not null)
-                        {
-                            <div>@(order.AcceptedByAccount.FullName ?? order.AcceptedByAccount.Username)</div>
-                            @if (order.AcceptedAt is DateTime acceptedAt)
-                            {
-                                <time class="accepted-at" datetime="@acceptedAt.ToString("O")">
-                                    lúc @acceptedAt.ToString("HH:mm dd/MM")
-                                </time>
-                            }
-                        }
-                        else
-                        {
-                            <span class="muted">Chưa ai nhận</span>
-                        }
-                    </td>
-                </tr>
-                <tr class="order-details-row" data-details-for="@order.Id">
-                    <td colspan="7">
-                        <details class="order-details">
-                            <summary>Xem chi tiết và xử lý</summary>
-                            <div class="order-details__content">
-                                <dl class="order-meta">
-                                    <div>
-                                        <dt>Địa chỉ giao hàng</dt>
-                                        <dd>@order.Address</dd>
-                                    </div>
-                                    <div>
-                                        <dt>Phương thức thanh toán</dt>
-                                        <dd>@order.PaymentMethod.ToDisplayText()</dd>
-                                    </div>
-                                    <div>
-                                        <dt>Ghi chú</dt>
-                                        <dd>@(string.IsNullOrWhiteSpace(order.Note) ? "Không có" : order.Note)</dd>
-                                    </div>
-                                </dl>
-
-                                <div class="order-items-wrap">
-                                    <table class="order-items-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Món</th>
-                                                <th class="num">Số lượng</th>
-                                                <th class="num">Đơn giá</th>
-                                                <th class="num">Thành tiền</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var item in order.Items)
-                                            {
-                                                <tr>
-                                                    <td>@(item.MenuItem?.Name ?? $"Món #{item.MenuItemId}")</td>
-                                                    <td class="num">@item.Quantity</td>
-                                                    <td class="num">@item.UnitPrice.ToString("N0") đ</td>
-                                                    <td class="num">@item.LineTotal.ToString("N0") đ</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <th colspan="3">Tổng cộng</th>
-                                                <th class="num">@order.Total.ToString("N0") đ</th>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-
-                                <div class="order-actions">
-                                    @if (order.Status is >= OrderStatus.Pending and < OrderStatus.Completed)
-                                    {
-                                        var nextStatus = (OrderStatus)((int)order.Status + 1);
-                                        <form method="post" asp-page-handler="ChangeStatus">
-                                            <input type="hidden" name="orderId" value="@order.Id" />
-                                            <input type="hidden" name="nextStatus" value="@nextStatus" />
-                                            <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
-                                            <input type="hidden" name="search" value="@Model.Search" />
-                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
-                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
-                                            <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
-                                            <button class="btn btn--primary btn--sm" type="submit">
-                                                Chuyển sang @nextStatus.ToDisplayText()
-                                            </button>
-                                        </form>
-                                    }
-
-                                    @if (order.Status.CanBeCancelledByStaff())
-                                    {
-                                        <form method="post" asp-page-handler="ChangeStatus">
-                                            <input type="hidden" name="orderId" value="@order.Id" />
-                                            <input type="hidden" name="nextStatus" value="@OrderStatus.Cancelled" />
-                                            <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
-                                            <input type="hidden" name="search" value="@Model.Search" />
-                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
-                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
-                                            <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
-                                            <button class="btn btn--danger-quiet btn--sm" type="submit">
-                                                Hủy đơn
-                                            </button>
-                                        </form>
-                                    }
-
-                                    @if (order.Status is OrderStatus.Completed or OrderStatus.Cancelled)
-                                    {
-                                        <span class="badge badge--muted">Đơn đã kết thúc</span>
-                                    }
-                                </div>
-                            </div>
-                        </details>
-                    </td>
                 </tr>
             }
         </tbody>
     </table>
+    }
+    else
+    {
+        <p class="empty-state">Không có đơn nào khớp điều kiện.</p>
+    }
 </div>
 
 @if (Model.Result.TotalPages > 1)
@@ -267,9 +132,4 @@
                asp-route-pageNumber="@(Model.Result.Page + 1)">Sau »</a>
         }
     </nav>
-}
-
-@section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-    <script src="~/js/admin-orders.js" asp-append-version="true"></script>
 }
