@@ -115,8 +115,28 @@ else
                             <div class="mb-1">
                                 <label asp-for="Input.VoucherCode" class="form-label small mb-1"></label>
                                 <input asp-for="Input.VoucherCode" class="form-control form-control-sm text-uppercase"
-                                       placeholder="Ví dụ: QV-ABC123" />
+                                       placeholder="Ví dụ: QV-ABC123" autocomplete="off" />
                                 <span asp-validation-for="Input.VoucherCode" class="text-danger"></span>
+                                @if (Model.AvailableVouchers.Count > 0)
+                                {
+                                    <div class="mt-2" data-voucher-suggestions>
+                                        <small class="text-muted d-block mb-1">
+                                            Voucher của bạn — bấm để dùng:
+                                        </small>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var voucher in Model.AvailableVouchers)
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-success"
+                                                        data-voucher-code="@voucher.Code"
+                                                        title="Hết hạn @voucher.ExpiresAt.ToString("dd/MM/yyyy")">
+                                                    @voucher.Code · @voucher.DiscountPercent%
+                                                    (tối đa @voucher.MaxDiscountAmount.ToString("N0") đ)
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                }
                             </div>
                             <p class="small text-muted mb-0">
                                 Mỗi đơn chỉ áp dụng một mã. Giảm giá được trừ khi xác nhận đặt hàng.
@@ -181,6 +201,26 @@ else
 
             directPickup.addEventListener('change', updateAddress);
             updateAddress();
+        })();
+
+        (() => {
+            const container = document.querySelector('[data-voucher-suggestions]');
+            const voucherInput = document.getElementById('Input_VoucherCode');
+            const promotionInput = document.getElementById('Input_PromotionCode');
+
+            if (!container || !voucherInput) {
+                return;
+            }
+
+            container.querySelectorAll('[data-voucher-code]').forEach(button => {
+                button.addEventListener('click', () => {
+                    voucherInput.value = button.dataset.voucherCode;
+                    if (promotionInput) {
+                        promotionInput.value = '';
+                    }
+                    voucherInput.focus();
+                });
+            });
         })();
     </script>
 }
