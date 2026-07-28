@@ -61,8 +61,7 @@
 
 @if (order != null)
 {
-    <section data-order-track data-order-id="@order.Id"
-             data-status-changed="@Url.Page("/Orders/Track", null, new { code = order.OrderCode })">
+    <section data-order-track data-order-code="@order.OrderCode">
         <div class="card shadow-sm mb-4">
             <div class="card-body p-4">
                 <div class="d-flex flex-wrap justify-content-between gap-3">
@@ -188,7 +187,7 @@
             if (!track || !window.signalR) {
                 return;
             }
-            var orderId = parseInt(track.getAttribute('data-order-id'), 10);
+            var orderCode = track.getAttribute('data-order-code');
             var connection = new signalR.HubConnectionBuilder()
                 .withUrl('/orderHub')
                 .withAutomaticReconnect()
@@ -197,7 +196,7 @@
                 window.location.reload();
             });
             connection.start().then(function () {
-                return connection.invoke('WatchOrder', orderId);
+                return connection.invoke('WatchOrder', orderCode);
             }).catch(function () { });
         })();
     </script>

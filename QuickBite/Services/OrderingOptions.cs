@@ -9,4 +9,10 @@ public sealed class OrderingOptions
     public decimal MinimumDeliverySubtotal { get; set; } = 30000;
 
     public int MaxOpenOrdersPerPhone { get; set; } = 3;
+
+    public int PendingExpiryMinutes { get; set; } = 15;
+
+    public int ReadyNoShowMinutes { get; set; } = 60;
+
+    public int SweepIntervalSeconds { get; set; } = 60;
 }

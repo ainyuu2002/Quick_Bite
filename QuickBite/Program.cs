@@ -53,6 +53,7 @@ builder.Services.AddScoped<ICustomerInfoService, DefaultCustomerInfoService>();
 builder.Services.AddScoped<IOrderEventPublisher, OrderEventPublisher>();
 builder.Services.Configure<OrderingOptions>(
     builder.Configuration.GetSection(OrderingOptions.SectionName));
+builder.Services.AddHostedService<OrderExpiryService>();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

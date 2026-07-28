@@ -46,8 +46,8 @@ namespace QuickBite.Hubs
         public Task JoinShipper()
             => Groups.AddToGroupAsync(Context.ConnectionId, "shipper");
 
-        public Task WatchOrder(int orderId)
-            => Groups.AddToGroupAsync(Context.ConnectionId, $"order-{orderId}");
+        public Task WatchOrder(string orderCode)
+            => Groups.AddToGroupAsync(Context.ConnectionId, $"order-{orderCode}");
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {

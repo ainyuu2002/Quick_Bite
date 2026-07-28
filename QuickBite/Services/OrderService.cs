@@ -231,6 +231,23 @@ public sealed class OrderService
         return order;
     }
 
+    public async Task<Order> MarkPaidAsync(int orderId, CancellationToken cancellationToken = default)
+    {
+        var order = await _db.Orders
+            .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
+
+        if (order.PaymentStatus == PaymentStatus.Paid)
+        {
+            return order;
+        }
+
+        order.PaymentStatus = PaymentStatus.Paid;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return order;
+    }
+
     public Task<List<ReasonCatalog>> GetReasonsAsync(
         ReasonKind kind,
         CancellationToken cancellationToken = default)
@@ -362,7 +379,7 @@ public sealed class OrderService
             statusText = order.Status.ToDisplayText()
         };
 
-        await _hub.Clients.Group($"order-{order.Id}")
+        await _hub.Clients.Group($"order-{order.OrderCode}")
             .SendAsync("OrderStatusChanged", payload, cancellationToken);
 
         foreach (var roleGroup in new[] { "staff", "kitchen", "shipper" })
