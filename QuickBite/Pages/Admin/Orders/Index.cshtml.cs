@@ -42,6 +42,8 @@ public class IndexModel : PageModel
 
     public IReadOnlySet<string> BlacklistedPhones { get; private set; } = new HashSet<string>();
 
+    public IReadOnlyDictionary<int, string> StatusReasons { get; private set; } = new Dictionary<int, string>();
+
     public static IReadOnlyList<OrderStatus> AdminNextStatuses(OrderStatus current, OrderType orderType)
         => Enum.GetValues<OrderStatus>()
             .Where(next => current.CanTransitionTo(next, orderType)
@@ -105,6 +107,18 @@ public class IndexModel : PageModel
 
         BlacklistedPhones = await _orderService.GetBlacklistedPhonesAsync(
             Result.Items.Select(order => order.Phone));
+
+        var orderIds = Result.Items.Select(order => order.Id).ToList();
+        var reasonRows = await _context.OrderStatusHistories
+            .AsNoTracking()
+            .Where(history => orderIds.Contains(history.OrderId) && history.Reason != null)
+            .Select(history => new { history.OrderId, history.Reason, history.ChangedAt })
+            .ToListAsync();
+        StatusReasons = reasonRows
+            .GroupBy(row => row.OrderId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.OrderByDescending(row => row.ChangedAt).First().Reason!);
     }
 
     public async Task<IActionResult> OnPostChangeStatusAsync(

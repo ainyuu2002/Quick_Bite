@@ -240,6 +240,14 @@ public sealed class OrderService
         return order;
     }
 
+    public Task<string?> GetLatestReasonAsync(int orderId, CancellationToken cancellationToken = default)
+        => _db.OrderStatusHistories
+            .AsNoTracking()
+            .Where(history => history.OrderId == orderId && history.Reason != null)
+            .OrderByDescending(history => history.ChangedAt)
+            .Select(history => history.Reason)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<List<ReasonCatalog>> GetReasonsAsync(
         ReasonKind kind,
         CancellationToken cancellationToken = default)

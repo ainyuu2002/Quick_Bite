@@ -21,6 +21,8 @@ public sealed class TrackModel : PageModel
 
     public Order? Order { get; private set; }
 
+    public string? StatusReason { get; private set; }
+
     public IReadOnlyList<ReasonCatalog> CancelReasons { get; private set; } = [];
 
     public bool Created { get; private set; }
@@ -48,6 +50,12 @@ public sealed class TrackModel : PageModel
         if (Order is { Status: OrderStatus.Pending })
         {
             CancelReasons = await _orderService.GetReasonsAsync(ReasonKind.Cancel, cancellationToken);
+        }
+
+        if (Order is not null && Order.Status is OrderStatus.Cancelled or OrderStatus.Rejected
+            or OrderStatus.Expired or OrderStatus.DeliveryFailed or OrderStatus.NoShow)
+        {
+            StatusReason = await _orderService.GetLatestReasonAsync(Order.Id, cancellationToken);
         }
     }
 

@@ -83,6 +83,10 @@
         {
             <div class="alert alert-danger">
                 Đơn hàng ở trạng thái <strong>@order.Status.ToDisplayText()</strong>.
+                @if (!string.IsNullOrWhiteSpace(Model.StatusReason))
+                {
+                    <div class="mt-1">Lý do: @Model.StatusReason</div>
+                }
             </div>
         }
         else

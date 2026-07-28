@@ -166,6 +166,13 @@
                                         <dt>Phương thức thanh toán</dt>
                                         <dd>@order.PaymentMethod.ToDisplayText()</dd>
                                     </div>
+                                    @if (Model.StatusReasons.TryGetValue(order.Id, out var statusReason))
+                                    {
+                                        <div>
+                                            <dt>Lý do (hủy/từ chối/thất bại)</dt>
+                                            <dd>@statusReason</dd>
+                                        </div>
+                                    }
                                     <div>
                                         <dt>Trạng thái thanh toán</dt>
                                         <dd>
