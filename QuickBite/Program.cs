@@ -28,6 +28,8 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<WorkSessionService>();
+builder.Services.AddScoped<IDiscountService, NoDiscountService>();
+builder.Services.AddScoped<ICustomerInfoService, DefaultCustomerInfoService>();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
