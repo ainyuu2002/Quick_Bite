@@ -89,6 +89,7 @@ public class IndexModel : PageModel
             query = query.Where(o =>
                 o.CustomerName.Contains(keyword) ||
                 o.Phone.Contains(keyword) ||
+                o.OrderCode.Contains(keyword) ||
                 o.Id.ToString() == keyword);
         }
 

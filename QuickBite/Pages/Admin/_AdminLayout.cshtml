@@ -15,6 +15,11 @@
     bool canStaff = isOwner || User.IsInRole(nameof(AccountRole.Staff));
     bool canKitchen = isOwner || User.IsInRole(nameof(AccountRole.Kitchen));
     bool canShipper = isOwner || User.IsInRole(nameof(AccountRole.Shipper));
+
+    string brandPage = canStaff ? "/Admin/Orders/Index"
+        : canKitchen ? "/Admin/Kitchen/Index"
+        : canShipper ? "/Admin/Shipper/Index"
+        : "/Admin/Orders/Index";
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -31,7 +36,7 @@
 <body class="admin-app">
     <div class="admin-shell">
         <aside class="admin-rail">
-            <a class="admin-rail__brand" asp-page="/Admin/Orders/Index">
+            <a class="admin-rail__brand" asp-page="@brandPage">
                 <span class="admin-rail__mark" aria-hidden="true">QB</span>
                 <span>
                     <span class="admin-rail__name">QuickBite</span>

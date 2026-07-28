@@ -28,11 +28,20 @@ namespace QuickBite.Pages.Admin
         [Required(ErrorMessage = "Vui lòng nhập mật khẩu")]
         public string Password { get; set; } = string.Empty;
 
+        private static string LandingPageForRole(AccountRole role) => role switch
+        {
+            AccountRole.Kitchen => "/Admin/Kitchen/Index",
+            AccountRole.Shipper => "/Admin/Shipper/Index",
+            _ => "/Admin/Orders/Index"
+        };
+
         public IActionResult OnGet()
         {
-            if(User.Identity?.IsAuthenticated == true)
+            if (User.Identity?.IsAuthenticated == true)
             {
-                return RedirectToPage("/Admin/Orders/Index");
+                var roleName = User.FindFirstValue(ClaimTypes.Role);
+                var role = Enum.TryParse<AccountRole>(roleName, out var parsed) ? parsed : AccountRole.Staff;
+                return RedirectToPage(LandingPageForRole(role));
             }
             return Page();
         }
@@ -76,7 +85,7 @@ namespace QuickBite.Pages.Admin
             var principal = new ClaimsPrincipal(identity);
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-            return RedirectToPage("/Admin/Orders/Index");
+            return RedirectToPage(LandingPageForRole(user.Role));
         }
 
         public async Task<IActionResult> OnPostLogoutAsync()
