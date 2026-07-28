@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Models;
+using QuickBite.Modules.Operations.Ingredients;
 using QuickBite.Modules.Operations.MenuAvailability;
 using QuickBite.Modules.Operations.Store;
 
@@ -17,6 +18,9 @@ public class AppDbContext : DbContext
     public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
     public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
     public DbSet<DailyQuota> DailyQuotas => Set<DailyQuota>();
+    public DbSet<Ingredient> Ingredients => Set<Ingredient>();
+    public DbSet<DishIngredient> DishIngredients => Set<DishIngredient>();
+    public DbSet<RestockLog> RestockLogs => Set<RestockLog>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<OtpVerification> OtpVerifications => Set<OtpVerification>();
     public DbSet<Promotion> Promotions => Set<Promotion>();
@@ -131,6 +135,69 @@ public class AppDbContext : DbContext
           .WithMany()
           .HasForeignKey(quota => quota.UpdatedByAccountId)
           .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<Ingredient>()
+          .HasIndex(item => item.Name)
+          .IsUnique();
+
+        mb.Entity<Ingredient>()
+          .HasIndex(item => item.Status);
+
+        mb.Entity<Ingredient>()
+          .ToTable(table =>
+              table.HasCheckConstraint(
+                  "CK_Ingredients_Status",
+                  "[Status] IN (0, 1, 2)"));
+
+        mb.Entity<Ingredient>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(item => item.UpdatedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<DishIngredient>()
+          .HasKey(link => new { link.IngredientId, link.MenuItemId });
+
+        mb.Entity<DishIngredient>()
+          .HasOne(link => link.Ingredient)
+          .WithMany(item => item.Dishes)
+          .HasForeignKey(link => link.IngredientId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        mb.Entity<DishIngredient>()
+          .HasOne(link => link.MenuItem)
+          .WithMany()
+          .HasForeignKey(link => link.MenuItemId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        mb.Entity<RestockLog>()
+          .ToTable(table =>
+          {
+              table.HasCheckConstraint(
+                  "CK_RestockLogs_Action",
+                  "[Action] IN (0, 1)");
+              table.HasCheckConstraint(
+                  "CK_RestockLogs_PreviousStatus",
+                  "[PreviousStatus] IN (0, 1, 2)");
+              table.HasCheckConstraint(
+                  "CK_RestockLogs_NewStatus",
+                  "[NewStatus] IN (0, 1, 2)");
+          });
+
+        mb.Entity<RestockLog>()
+          .HasOne(log => log.Ingredient)
+          .WithMany(item => item.Logs)
+          .HasForeignKey(log => log.IngredientId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<RestockLog>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(log => log.ActorAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<RestockLog>()
+          .HasIndex(log => new { log.IngredientId, log.CreatedAt });
 
         mb.Entity<Order>().HasIndex(o => o.Status);
         mb.Entity<Order>().HasIndex(o => o.CreatedAt);

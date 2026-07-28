@@ -4,6 +4,7 @@ using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Services;
 using QuickBite.Modules.Operations.Authorization;
+using QuickBite.Modules.Operations.Ingredients;
 using QuickBite.Modules.Operations.MenuAvailability;
 using QuickBite.Modules.Operations.Store;
 using QuickBite.Modules.Operations.Workforce;
@@ -21,6 +22,9 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Admin/Orders", InternalPolicies.ReceiveOrders);
     options.Conventions.AuthorizeFolder("/Staff", InternalPolicies.ReceiveOrders);
     options.Conventions.AuthorizeFolder("/Admin/Operations", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder(
+        "/Admin/Ingredients",
+        InternalPolicies.OperateKitchen);
     options.Conventions.AuthorizePage(
         "/Admin/Operations/MenuAvailability",
         InternalPolicies.ManagerOnly);
@@ -53,6 +57,7 @@ builder.Services.AddScoped<WorkSessionService>();
 builder.Services.AddScoped<IStoreAvailabilityService, StoreAvailabilityService>();
 builder.Services.AddScoped<IMenuAvailabilityService, MenuAvailabilityService>();
 builder.Services.AddScoped<IWorkSessionApprovalService, WorkSessionApprovalService>();
+builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<CustomerAccountService>();
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<LoyaltyService>();

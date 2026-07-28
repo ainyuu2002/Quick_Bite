@@ -1,5 +1,6 @@
 using QuickBite.Models;
 using QuickBite.Modules.Operations.Authorization;
+using QuickBite.Modules.Operations.Ingredients;
 using QuickBite.Modules.Operations.MenuAvailability;
 using QuickBite.Modules.Operations.Store;
 
@@ -101,5 +102,13 @@ Assert(
 Assert(
     approvedSession.ApprovedSalary == 112_500m,
     "Lương phải bằng giờ đã duyệt nhân snapshot đơn giá.");
+
+Assert(
+    IngredientStatus.OutOfStock.ToDisplayText() == "Hết",
+    "Trạng thái hết nguyên liệu phải có nhãn nghiệp vụ.");
+var ingredientLink = new DishIngredient { DisabledMenuItem = true };
+Assert(
+    ingredientLink.DisabledMenuItem,
+    "Liên kết món phải ghi được việc món bị tắt tự động bởi nguyên liệu.");
 
 Console.WriteLine("Admin order domain tests passed.");

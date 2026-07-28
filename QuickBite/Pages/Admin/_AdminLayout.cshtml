@@ -10,10 +10,12 @@
     bool isMenuAvailability = path.Equals("/Admin/Operations/MenuAvailability");
     bool isPromotions = path.StartsWithSegments("/Admin/Promotions");
     bool isComplaints = path.StartsWithSegments("/Admin/Complaints");
+    bool isIngredients = path.StartsWithSegments("/Admin/Ingredients");
 
     // Ẩn mục chỉ dành cho chủ quán không phải là bảo mật — chặn thật nằm ở policy
     // ManagerOnly trong Program.cs. Ẩn ở đây chỉ để nhân viên khỏi bấm vào rồi ăn trang từ chối.
     bool isManager = User.IsInRole(InternalRoles.Manager);
+    bool canManageIngredients = isManager || User.IsInRole(InternalRoles.Kitchen);
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -51,6 +53,13 @@
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 3v-3h-2zM5 6h6M5 8.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
                     Phản ánh
                 </a>
+                @if (canManageIngredients)
+                {
+                    <a class="admin-rail__link" asp-page="/Admin/Ingredients/Index" aria-current="@(isIngredients ? "page" : null)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 13.5c3 0 5-2.1 5-5.2V3.5C10 3.5 8 5 8 8c0-3-2-4.5-5-4.5v4.8c0 3.1 2 5.2 5 5.2ZM8 8v5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        Nguyên liệu
+                    </a>
+                }
                 @if (isManager)
                 {
                     <a class="admin-rail__link" asp-page="/Admin/Operations/MenuAvailability" aria-current="@(isMenuAvailability ? "page" : null)">
