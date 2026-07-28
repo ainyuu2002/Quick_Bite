@@ -29,7 +29,9 @@ public sealed class AddAccountRoleAndWorkSession : Migration
             END
             """);
 
-        // 2. Phân quyền. Mặc định DB là Staff (1) — tài khoản tạo sai sót sẽ là
+        // 2. Phân quyền. Role 0 trước đây mang tên Admin, nay đổi tên nghiệp vụ thành
+        //    Manager nhưng giữ nguyên giá trị số để tương thích dữ liệu hiện có.
+        //    Mặc định DB là Staff (1) — tài khoản tạo sai sót sẽ là
         //    quyền thấp nhất, không phải quyền cao nhất.
         migrationBuilder.Sql(
             """
@@ -51,7 +53,7 @@ public sealed class AddAccountRoleAndWorkSession : Migration
             END
             """);
 
-        // Tài khoản seed sẵn là chủ quán.
+        // Tài khoản seed sẵn là chủ quán (Manager = 0).
         migrationBuilder.Sql(
             "UPDATE [dbo].[Accounts] SET [Role] = 0 WHERE [Username] = N'admin';");
 
