@@ -61,7 +61,7 @@ public class IndexModel : PageModel
         OrderStatus status = OrderStatus.Pending,
         string? search = null,
         string sortBy = "date",
-        string sortDir = "desc",
+        string sortDir = "asc",
         int pageNumber = 1)
     {
         CurrentStatus = status;
@@ -111,6 +111,7 @@ public class IndexModel : PageModel
         int orderId,
         OrderStatus nextStatus,
         string? reason = null,
+        string? reasonOther = null,
         OrderStatus currentStatus = OrderStatus.Pending,
         string? search = null,
         string sortBy = "date",
@@ -132,11 +133,12 @@ public class IndexModel : PageModel
                 ? accountId
                 : (int?)null;
 
+            var effectiveReason = reason == "__other__" ? reasonOther : reason;
             var order = await _orderService.ChangeStatusAsync(
                 orderId,
                 nextStatus,
                 actorAccountId,
-                reason,
+                effectiveReason,
                 cancellationToken);
 
             TempData["SuccessMessage"] =

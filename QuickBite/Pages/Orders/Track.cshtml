@@ -106,15 +106,19 @@
         {
             <form method="post" asp-page-handler="Cancel" class="card shadow-sm mb-4">
                 <div class="card-body">
+                    <input type="hidden" name="Code" value="@order.OrderCode" />
                     <label class="form-label">Lý do hủy đơn</label>
-                    <div class="d-flex flex-wrap gap-2">
-                        <select name="reason" class="form-select" style="max-width: 320px;" required>
+                    <div class="d-flex flex-wrap gap-2" data-reason-group>
+                        <select name="reason" class="form-select" style="max-width: 320px;" required data-reason-select>
                             <option value="">— Chọn lý do —</option>
                             @foreach (var reason in Model.CancelReasons)
                             {
                                 <option value="@reason.Text">@reason.Text</option>
                             }
+                            <option value="__other__">Khác…</option>
                         </select>
+                        <input type="text" name="reasonOther" class="form-control" style="max-width: 320px;"
+                               placeholder="Nhập lý do khác" data-reason-other hidden />
                         <button type="submit" class="btn btn-outline-danger"
                                 onclick="return confirm('Bạn có chắc muốn hủy đơn này?');">
                             Hủy đơn hàng
@@ -180,6 +184,7 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/reason-other.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
         (function () {

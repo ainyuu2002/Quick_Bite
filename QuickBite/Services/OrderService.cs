@@ -126,6 +126,12 @@ public sealed class OrderService
 
         var subtotal = normalizedItems.Sum(item => menuItems[item.MenuItemId].Price * item.Quantity);
 
+        if (subtotal > _options.MaxOrderTotal)
+        {
+            throw new OrderValidationException(
+                $"Đơn vượt {_options.MaxOrderTotal:N0}đ tiền món. Đơn lớn vui lòng liên hệ quán để đặt (cần đặt cọc trước).");
+        }
+
         if (request.OrderType == OrderType.Delivery && subtotal < _options.MinimumDeliverySubtotal)
         {
             throw new OrderValidationException(
@@ -324,6 +330,13 @@ public sealed class OrderService
         var fromStatus = order.Status;
         order.Status = nextStatus;
         AddStatusHistory(order, fromStatus, nextStatus, trimmedReason, actorAccountId);
+
+        if (nextStatus == OrderStatus.Completed
+            && order.PaymentMethod == PaymentMethod.Cash
+            && order.PaymentStatus == PaymentStatus.Unpaid)
+        {
+            order.PaymentStatus = PaymentStatus.Paid;
+        }
 
         await _db.SaveChangesAsync(cancellationToken);
 

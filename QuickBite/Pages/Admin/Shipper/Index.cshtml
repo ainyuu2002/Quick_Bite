@@ -55,16 +55,18 @@
                         <input type="hidden" name="nextStatus" value="@OrderStatus.Completed" />
                         <button class="btn btn--primary btn--sm" type="submit">Giao thành công</button>
                     </form>
-                    <form method="post" asp-page-handler="Advance" class="ticket__fail">
+                    <form method="post" asp-page-handler="Advance" class="ticket__fail" data-reason-group>
                         <input type="hidden" name="orderId" value="@order.Id" />
                         <input type="hidden" name="nextStatus" value="@OrderStatus.DeliveryFailed" />
-                        <select name="reason" class="input" required aria-label="Lý do giao thất bại">
+                        <select name="reason" class="input" required aria-label="Lý do giao thất bại" data-reason-select>
                             <option value="">— Lý do thất bại —</option>
                             @foreach (var reason in Model.FailReasons)
                             {
                                 <option value="@reason.Text">@reason.Text</option>
                             }
+                            <option value="__other__">Khác…</option>
                         </select>
+                        <input type="text" name="reasonOther" class="input" placeholder="Nhập lý do" data-reason-other hidden />
                         <button class="btn btn--danger-quiet btn--sm" type="submit">Giao thất bại</button>
                     </form>
                 }
@@ -74,6 +76,7 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/reason-other.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="~/js/role-board.js" asp-append-version="true"></script>
 }

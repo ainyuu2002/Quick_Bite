@@ -62,7 +62,10 @@ public sealed class TrackModel : PageModel
         return RedirectToPage(new { code = Code.Trim().ToUpperInvariant() });
     }
 
-    public async Task<IActionResult> OnPostCancelAsync(string? reason, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostCancelAsync(
+        string? reason,
+        string? reasonOther,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(Code))
         {
@@ -70,9 +73,11 @@ public sealed class TrackModel : PageModel
             return RedirectToPage();
         }
 
+        var effectiveReason = reason == "__other__" ? reasonOther : reason;
+
         try
         {
-            await _orderService.CancelByCodeAsync(Code, reason, cancellationToken);
+            await _orderService.CancelByCodeAsync(Code, effectiveReason, cancellationToken);
             Message = "Đơn hàng đã được hủy.";
         }
         catch (Exception exception) when (exception is OrderValidationException or KeyNotFoundException)

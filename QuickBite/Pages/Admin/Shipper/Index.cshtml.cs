@@ -45,6 +45,7 @@ public class IndexModel : PageModel
         int orderId,
         OrderStatus nextStatus,
         string? reason,
+        string? reasonOther,
         CancellationToken cancellationToken)
     {
         var actorAccountId = int.TryParse(
@@ -52,9 +53,11 @@ public class IndexModel : PageModel
             ? accountId
             : (int?)null;
 
+        var effectiveReason = reason == "__other__" ? reasonOther : reason;
+
         try
         {
-            await _orderService.ChangeStatusAsync(orderId, nextStatus, actorAccountId, reason, cancellationToken);
+            await _orderService.ChangeStatusAsync(orderId, nextStatus, actorAccountId, effectiveReason, cancellationToken);
             TempData["SuccessMessage"] = $"Đơn #{orderId} đã cập nhật.";
         }
         catch (Exception exception) when (exception is OrderValidationException or KeyNotFoundException)

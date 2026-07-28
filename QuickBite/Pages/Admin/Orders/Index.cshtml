@@ -173,6 +173,7 @@
                                                 @order.PaymentStatus.ToDisplayText()
                                             </span>
                                             @if (order.PaymentStatus == PaymentStatus.Unpaid
+                                                && order.PaymentMethod == PaymentMethod.BankTransfer
                                                 && order.Status is not (OrderStatus.Cancelled or OrderStatus.Rejected
                                                     or OrderStatus.Expired or OrderStatus.DeliveryFailed or OrderStatus.NoShow))
                                             {
@@ -183,8 +184,13 @@
                                                     <input type="hidden" name="sortBy" value="@Model.SortBy" />
                                                     <input type="hidden" name="sortDir" value="@Model.SortDir" />
                                                     <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
-                                                    <button class="btn btn--secondary btn--sm" type="submit">Xác nhận đã thanh toán</button>
+                                                    <button class="btn btn--secondary btn--sm" type="submit">Xác nhận đã nhận chuyển khoản</button>
                                                 </form>
+                                            }
+                                            @if (order.PaymentStatus == PaymentStatus.Unpaid
+                                                && order.PaymentMethod == PaymentMethod.Cash)
+                                            {
+                                                <span class="muted">Tiền mặt — tự xác nhận khi đơn hoàn tất</span>
                                             }
                                         </dd>
                                     </div>
@@ -284,13 +290,17 @@
                                             <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
                                             @if (needsReason)
                                             {
-                                                <select name="reason" class="input" required aria-label="Lý do @next.ToDisplayText()">
-                                                    <option value="">— Chọn lý do —</option>
-                                                    @foreach (var reasonOption in Model.ReasonsFor(next))
-                                                    {
-                                                        <option value="@reasonOption.Text">@reasonOption.Text</option>
-                                                    }
-                                                </select>
+                                                <span class="reason-group" data-reason-group>
+                                                    <select name="reason" class="input" required aria-label="Lý do @next.ToDisplayText()" data-reason-select>
+                                                        <option value="">— Chọn lý do —</option>
+                                                        @foreach (var reasonOption in Model.ReasonsFor(next))
+                                                        {
+                                                            <option value="@reasonOption.Text">@reasonOption.Text</option>
+                                                        }
+                                                        <option value="__other__">Khác…</option>
+                                                    </select>
+                                                    <input type="text" name="reasonOther" class="input" placeholder="Nhập lý do" data-reason-other hidden />
+                                                </span>
                                             }
                                             <button class="btn @(needsReason ? "btn--danger-quiet" : "btn--primary") btn--sm" type="submit">
                                                 @next.ToDisplayText()
@@ -337,6 +347,7 @@
 }
 
 @section Scripts {
+    <script src="~/js/reason-other.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="~/js/admin-orders.js" asp-append-version="true"></script>
 }
