@@ -57,18 +57,6 @@ else
         <div class="alert alert-success">
             Đặt hàng thành công! Hãy dùng số điện thoại đã đăng ký để tra cứu đơn.
         </div>
-
-        @if (Model.SuggestRegistration)
-        {
-            <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <span>
-                    ⭐ Đơn này đáng <strong>@Model.PotentialPoints điểm</strong> —
-                    tạo tài khoản để tích điểm, đổi voucher và đặt lại món chỉ với một chạm.
-                </span>
-                <a asp-page="/Account/Register" asp-route-phone="@Model.RegistrationPhone"
-                   class="btn btn-sm btn-primary">Tạo tài khoản</a>
-            </div>
-        }
     }
 
     @if (!string.IsNullOrWhiteSpace(Model.Message))
@@ -170,14 +158,6 @@ else
                         </form>
                     }
 
-                    @if (order.Status == OrderStatus.Completed)
-                    {
-                        <div class="mb-4">
-                            <a asp-page="/Orders/Feedback" asp-route-orderId="@order.Id"
-                               class="btn btn-outline-primary">Đánh giá / Phản ánh đơn này</a>
-                        </div>
-                    }
-
                     <div class="card shadow-sm">
                         <div class="card-header fw-semibold">Chi tiết đơn hàng</div>
                         <div class="table-responsive">
@@ -202,17 +182,6 @@ else
                                 }
                             </tbody>
                             <tfoot>
-                                @if (order.DiscountAmount > 0)
-                                {
-                                    <tr>
-                                        <td colspan="3" class="text-end">Tạm tính</td>
-                                        <td class="text-end">@((order.Total + order.DiscountAmount).ToString("N0")) đ</td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="3" class="text-end">Giảm giá</td>
-                                        <td class="text-end text-success">−@order.DiscountAmount.ToString("N0") đ</td>
-                                    </tr>
-                                }
                                 <tr>
                                     <th colspan="3" class="text-end">Tổng cộng</th>
                                     <th class="text-end text-primary">@order.Total.ToString("N0") đ</th>

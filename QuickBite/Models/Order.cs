@@ -27,36 +27,11 @@ public class Order
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    /// <summary>Tổng tiền chốt tại thời điểm đặt (BR-03) = Σ UnitPrice × Quantity − DiscountAmount.</summary>
+    /// <summary>Tổng tiền chốt tại thời điểm đặt (BR-03) = Σ UnitPrice × Quantity.</summary>
     [Column(TypeName = "decimal(18,0)")]
     public decimal Total { get; set; }
 
-    [Column(TypeName = "decimal(18,0)")]
-    public decimal DiscountAmount { get; set; }
-
-    public int? CustomerId { get; set; }
-
-    public Customer? Customer { get; set; }
-
-    public int? PromotionId { get; set; }
-
-    public Promotion? Promotion { get; set; }
-
-    public int? VoucherId { get; set; }
-
-    public Voucher? Voucher { get; set; }
-
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
-
-    /// <summary>
-    /// Nhân viên đã bấm "Nhận đơn" (Pending → Accepted). Null = chưa ai nhận.
-    /// Chốt một lần, không đổi khi đơn đi tiếp các trạng thái sau.
-    /// </summary>
-    public int? AcceptedByAccountId { get; set; }
-
-    public Account? AcceptedByAccount { get; set; }
-
-    public DateTime? AcceptedAt { get; set; }
 
     public List<OrderItem> Items { get; set; } = new();
 }

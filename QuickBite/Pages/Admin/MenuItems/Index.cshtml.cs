@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Models;
 using QuickBite.Data;
-using QuickBite.Modules.Operations.Ingredients;
 
 namespace QuickBite.Pages.Admin.MenuItems;
 
@@ -92,35 +91,7 @@ public class IndexModel : PageModel
             return NotFound();
         }
 
-        if (!menuItem.IsAvailable)
-        {
-            var blockedByIngredient = await _context.DishIngredients
-                .AnyAsync(link => link.MenuItemId == id
-                    && link.Ingredient.Status == IngredientStatus.OutOfStock);
-            if (blockedByIngredient)
-            {
-                ErrorMessage =
-                    "Không thể hiện món khi còn nguyên liệu liên quan đang hết.";
-                return RedirectToPage();
-            }
-
-            menuItem.IsAvailable = true;
-        }
-        else
-        {
-            menuItem.IsAvailable = false;
-
-            // Manager chủ động ẩn món thì việc nhập nguyên liệu sau đó không được
-            // tự ý mở món trở lại.
-            var automaticFlags = await _context.DishIngredients
-                .Where(link => link.MenuItemId == id && link.DisabledMenuItem)
-                .ToListAsync();
-            foreach (var link in automaticFlags)
-            {
-                link.DisabledMenuItem = false;
-            }
-        }
-
+        menuItem.IsAvailable = !menuItem.IsAvailable;
         await _context.SaveChangesAsync();
 
         return RedirectToPage();
