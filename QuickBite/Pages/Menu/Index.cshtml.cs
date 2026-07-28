@@ -10,7 +10,7 @@ namespace QuickBite.Pages.Menu;
 public class IndexModel : PageModel
 {
     private const string CartKey = "Cart";
-    private const int PageSize = 12;
+    private const int PageSize = 9;
     private readonly AppDbContext _context;
 
     public IndexModel(AppDbContext context)

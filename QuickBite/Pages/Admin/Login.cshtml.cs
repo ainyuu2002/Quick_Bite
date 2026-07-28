@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Models;
+using QuickBite.Modules.Operations.Authorization;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
@@ -70,7 +71,14 @@ namespace QuickBite.Pages.Admin
             {
                 new (ClaimTypes.Name, user.Username),
                 new (ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new (ClaimTypes.Role, user.Role.ToString())
+                new (ClaimTypes.Role, user.Role switch
+                {
+                    AccountRole.Manager => InternalRoles.Manager,
+                    AccountRole.Staff => InternalRoles.Staff,
+                    AccountRole.Kitchen => InternalRoles.Kitchen,
+                    AccountRole.Shipper => InternalRoles.Shipper,
+                    _ => throw new InvalidOperationException("Vai trò tài khoản không hợp lệ.")
+                })
             };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);

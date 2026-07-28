@@ -59,10 +59,10 @@ public class IndexModel : PageModel
         }
 
         // Khoá nốt chủ quán cuối cùng = không còn ai tạo lại tài khoản được nữa.
-        if (account.IsActive && account.Role == AccountRole.Admin)
+        if (account.IsActive && account.Role == AccountRole.Manager)
         {
             var otherActiveAdmins = await _context.Accounts.CountAsync(
-                a => a.Role == AccountRole.Admin && a.IsActive && a.Id != account.Id,
+                a => a.Role == AccountRole.Manager && a.IsActive && a.Id != account.Id,
                 cancellationToken);
 
             if (otherActiveAdmins == 0)
