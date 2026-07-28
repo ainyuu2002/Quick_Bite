@@ -20,6 +20,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Admin/MenuItems", "AdminOnly");
     options.Conventions.AuthorizeFolder("/Admin/Staff", "AdminOnly");
     options.Conventions.AuthorizeFolder("/Admin/Reports", "AdminOnly");
+    options.Conventions.AuthorizeFolder("/Admin/Blacklist", "AdminOnly");
     options.Conventions.AuthorizeFolder("/Admin/Orders", "StaffAccess");
     options.Conventions.AuthorizeFolder("/Admin/Kitchen", "KitchenAccess");
     options.Conventions.AuthorizeFolder("/Admin/Shipper", "ShipperAccess");
@@ -50,6 +51,8 @@ builder.Services.AddScoped<WorkSessionService>();
 builder.Services.AddScoped<IDiscountService, NoDiscountService>();
 builder.Services.AddScoped<ICustomerInfoService, DefaultCustomerInfoService>();
 builder.Services.AddScoped<IOrderEventPublisher, OrderEventPublisher>();
+builder.Services.Configure<OrderingOptions>(
+    builder.Configuration.GetSection(OrderingOptions.SectionName));
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

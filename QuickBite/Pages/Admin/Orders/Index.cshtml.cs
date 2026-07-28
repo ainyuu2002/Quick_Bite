@@ -40,6 +40,8 @@ public class IndexModel : PageModel
 
     public IReadOnlyList<ReasonCatalog> Reasons { get; private set; } = [];
 
+    public IReadOnlySet<string> BlacklistedPhones { get; private set; } = new HashSet<string>();
+
     public static IReadOnlyList<OrderStatus> AdminNextStatuses(OrderStatus current, OrderType orderType)
         => Enum.GetValues<OrderStatus>()
             .Where(next => current.CanTransitionTo(next, orderType)
@@ -99,6 +101,9 @@ public class IndexModel : PageModel
         };
 
         Result = await PagedResult<Order>.CreateAsync(query, pageNumber, PageSize);
+
+        BlacklistedPhones = await _orderService.GetBlacklistedPhonesAsync(
+            Result.Items.Select(order => order.Phone));
     }
 
     public async Task<IActionResult> OnPostChangeStatusAsync(

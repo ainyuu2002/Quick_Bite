@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Models;
@@ -32,12 +33,18 @@ public sealed class OrderService
     private readonly AppDbContext _db;
     private readonly IHubContext<OrderHub> _hub;
     private readonly IOrderEventPublisher _events;
+    private readonly OrderingOptions _options;
 
-    public OrderService(AppDbContext db, IHubContext<OrderHub> hub, IOrderEventPublisher events)
+    public OrderService(
+        AppDbContext db,
+        IHubContext<OrderHub> hub,
+        IOrderEventPublisher events,
+        IOptions<OrderingOptions> options)
     {
         _db = db;
         _hub = hub;
         _events = events;
+        _options = options.Value;
     }
 
     public async Task<Order> CreateOrderAsync(
@@ -99,16 +106,47 @@ public sealed class OrderService
                 "Một số món không còn phục vụ. Vui lòng quay lại giỏ hàng và chọn món khác.");
         }
 
+        var normalizedPhone = request.Phone?.Trim() ?? string.Empty;
+
+        var openOrderCount = await _db.Orders.CountAsync(
+            existing => existing.Phone == normalizedPhone
+                && (existing.Status == OrderStatus.Pending
+                    || existing.Status == OrderStatus.Confirmed
+                    || existing.Status == OrderStatus.Preparing
+                    || existing.Status == OrderStatus.Ready
+                    || existing.Status == OrderStatus.Delivering),
+            cancellationToken);
+
+        if (openOrderCount >= _options.MaxOpenOrdersPerPhone)
+        {
+            throw new OrderValidationException(
+                $"Số điện thoại này đang có {openOrderCount} đơn chưa hoàn tất. " +
+                "Vui lòng chờ xử lý xong trước khi đặt thêm.");
+        }
+
+        var subtotal = normalizedItems.Sum(item => menuItems[item.MenuItemId].Price * item.Quantity);
+
+        if (request.OrderType == OrderType.Delivery && subtotal < _options.MinimumDeliverySubtotal)
+        {
+            throw new OrderValidationException(
+                $"Đơn giao hàng tối thiểu {_options.MinimumDeliverySubtotal:N0}đ tiền món (chưa gồm phí giao).");
+        }
+
+        var deliveryFee = request.OrderType == OrderType.Delivery ? _options.DeliveryFee : 0m;
+        var orderCode = await GenerateUniqueOrderCodeAsync(cancellationToken);
+
         var order = new Order
         {
             CustomerName = request.CustomerName?.Trim() ?? string.Empty,
-            Phone = request.Phone?.Trim() ?? string.Empty,
+            Phone = normalizedPhone,
             Address = request.OrderType == OrderType.Pickup
                 ? null
                 : request.Address?.Trim(),
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
             OrderType = request.OrderType,
             PaymentMethod = request.PaymentMethod,
+            DeliveryFee = deliveryFee,
+            OrderCode = orderCode,
             Status = OrderStatus.Pending,
             CreatedAt = DateTime.Now
         };
@@ -126,7 +164,7 @@ public sealed class OrderService
             });
         }
 
-        order.Total = order.Items.Sum(item => item.LineTotal);
+        order.Total = subtotal + deliveryFee;
         _db.Orders.Add(order);
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -154,48 +192,30 @@ public sealed class OrderService
             .ThenInclude(item => item.MenuItem)
             .SingleOrDefaultAsync(order => order.Id == orderId, cancellationToken);
 
-    public Task<bool> HasOrdersByPhoneAsync(
-        string phone,
-        CancellationToken cancellationToken = default)
+    public Task<Order?> GetByCodeAsync(string orderCode, CancellationToken cancellationToken = default)
     {
-        var normalizedPhone = phone.Trim();
+        var normalizedCode = orderCode.Trim().ToUpperInvariant();
         return _db.Orders
-            .AsNoTracking()
-            .AnyAsync(order => order.Phone == normalizedPhone, cancellationToken);
-    }
-
-    public async Task<IReadOnlyList<Order>> GetOrdersByPhoneAsync(
-        string phone,
-        CancellationToken cancellationToken = default)
-    {
-        var normalizedPhone = phone.Trim();
-        return await _db.Orders
             .AsNoTracking()
             .Include(order => order.Items)
             .ThenInclude(item => item.MenuItem)
-            .Where(order => order.Phone == normalizedPhone)
-            .OrderByDescending(order => order.CreatedAt)
-            .ThenByDescending(order => order.Id)
-            .ToListAsync(cancellationToken);
+            .SingleOrDefaultAsync(order => order.OrderCode == normalizedCode, cancellationToken);
     }
 
-    public async Task<Order> CancelOrderAsync(
-        int orderId,
-        string customerPhone,
+    public async Task<Order> CancelByCodeAsync(
+        string orderCode,
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        var normalizedPhone = customerPhone.Trim();
+        var normalizedCode = orderCode.Trim().ToUpperInvariant();
         var order = await _db.Orders
-            .SingleOrDefaultAsync(
-                item => item.Id == orderId && item.Phone == normalizedPhone,
-                cancellationToken)
-            ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
+            .SingleOrDefaultAsync(item => item.OrderCode == normalizedCode, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng với mã này.");
 
         if (!order.Status.CanBeCancelledByCustomer())
         {
             throw new OrderValidationException(
-                "Khách hàng chỉ có thể hủy đơn khi quán chưa xác nhận.");
+                "Chỉ có thể hủy đơn khi quán chưa xác nhận.");
         }
 
         var trimmedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
@@ -209,6 +229,43 @@ public sealed class OrderService
         await _events.PublishAsync(new OrderCancelled(order.Id, trimmedReason), cancellationToken);
 
         return order;
+    }
+
+    public Task<List<ReasonCatalog>> GetReasonsAsync(
+        ReasonKind kind,
+        CancellationToken cancellationToken = default)
+        => _db.ReasonCatalogs
+            .AsNoTracking()
+            .Where(reason => reason.IsActive && reason.Kind == kind)
+            .OrderBy(reason => reason.DisplayOrder)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlySet<string>> GetBlacklistedPhonesAsync(
+        IEnumerable<string> phones,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = phones.Select(phone => phone.Trim()).Distinct().ToArray();
+        var matches = await _db.PhoneBlacklists
+            .AsNoTracking()
+            .Where(entry => normalized.Contains(entry.Phone))
+            .Select(entry => entry.Phone)
+            .ToListAsync(cancellationToken);
+        return matches.ToHashSet();
+    }
+
+    private async Task<string> GenerateUniqueOrderCodeAsync(CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var code = OrderCodeGenerator.Generate();
+            var exists = await _db.Orders.AnyAsync(order => order.OrderCode == code, cancellationToken);
+            if (!exists)
+            {
+                return code;
+            }
+        }
+
+        return OrderCodeGenerator.Generate(8);
     }
 
     public async Task<Order> ChangeStatusAsync(

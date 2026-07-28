@@ -118,8 +118,12 @@ else
                             <span>Tổng số lượng</span>
                             <strong>@Model.TotalQuantity</strong>
                         </div>
-                        <div class="d-flex justify-content-between fs-4 border-top pt-3">
-                            <span>Tổng cộng</span>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tiền món</span>
+                            <strong>@Model.Total.ToString("N0") đ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between fs-5 border-top pt-3">
+                            <span>Tổng cộng (chưa gồm phí giao)</span>
                             <strong class="text-primary">@Model.Total.ToString("N0") đ</strong>
                         </div>
 
@@ -127,7 +131,9 @@ else
                             Xác nhận đặt hàng
                         </button>
                         <p class="small text-muted text-center mt-2 mb-0">
-                            Giá và tình trạng món sẽ được kiểm tra lại khi xác nhận.
+                            Đơn giao hàng cộng phí giao @Model.DeliveryFee.ToString("N0") đ,
+                            tối thiểu @Model.MinimumDeliverySubtotal.ToString("N0") đ tiền món.
+                            Hóa đơn cuối hiển thị ở trang tra cứu.
                         </p>
                     </div>
                 </div>

@@ -115,9 +115,15 @@
             @foreach (var order in Model.Result.Items)
             {
                 <tr data-order-id="@order.Id">
-                    <td><span class="order-id">#@order.Id</span></td>
+                    <td><span class="order-id">@order.OrderCode</span></td>
                     <td>@order.CustomerName</td>
-                    <td>@order.Phone</td>
+                    <td>
+                        @order.Phone
+                        @if (Model.BlacklistedPhones.Contains(order.Phone))
+                        {
+                            <span class="badge badge--danger" title="Số điện thoại trong danh sách cảnh báo bùng hàng">⚠ SĐT cảnh báo</span>
+                        }
+                    </td>
                     <td class="num">@order.Total.ToString("N0") đ</td>
                     <td>
                         <time datetime="@order.CreatedAt.ToString("O")">
@@ -188,6 +194,17 @@
                                             }
                                         </tbody>
                                         <tfoot>
+                                            <tr>
+                                                <td colspan="3" class="num">Tiền món</td>
+                                                <td class="num">@order.Subtotal.ToString("N0") đ</td>
+                                            </tr>
+                                            @if (order.DeliveryFee > 0)
+                                            {
+                                                <tr>
+                                                    <td colspan="3" class="num">Phí giao</td>
+                                                    <td class="num">@order.DeliveryFee.ToString("N0") đ</td>
+                                                </tr>
+                                            }
                                             <tr>
                                                 <th colspan="3">Tổng cộng</th>
                                                 <th class="num">@order.Total.ToString("N0") đ</th>

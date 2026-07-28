@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
     public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
     public DbSet<ReasonCatalog> ReasonCatalogs => Set<ReasonCatalog>();
+    public DbSet<PhoneBlacklist> PhoneBlacklists => Set<PhoneBlacklist>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -79,6 +80,9 @@ public class AppDbContext : DbContext
           .OnDelete(DeleteBehavior.Restrict);
 
         mb.Entity<OrderStatusHistory>().HasIndex(h => h.OrderId);
+
+        mb.Entity<Order>().HasIndex(o => o.OrderCode).IsUnique();
+        mb.Entity<PhoneBlacklist>().HasIndex(b => b.Phone).IsUnique();
 
         SeedReferenceData(mb);
     }

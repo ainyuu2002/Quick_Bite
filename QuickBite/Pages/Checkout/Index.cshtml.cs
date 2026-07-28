@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 using QuickBite.Models;
 using QuickBite.Services;
 
@@ -11,11 +12,17 @@ public sealed class IndexModel : PageModel
 {
     private const string CartKey = "Cart";
     private readonly OrderService _orderService;
+    private readonly OrderingOptions _options;
 
-    public IndexModel(OrderService orderService)
+    public IndexModel(OrderService orderService, IOptions<OrderingOptions> options)
     {
         _orderService = orderService;
+        _options = options.Value;
     }
+
+    public decimal DeliveryFee => _options.DeliveryFee;
+
+    public decimal MinimumDeliverySubtotal => _options.MinimumDeliverySubtotal;
 
     [BindProperty]
     public CheckoutInput Input { get; set; } = new();
@@ -64,8 +71,7 @@ public sealed class IndexModel : PageModel
                 cancellationToken);
 
             HttpContext.Session.Remove(CartKey);
-            OrderTrackingSession.GrantAccess(HttpContext.Session, order.Phone);
-            return RedirectToPage("/Orders/Track", new { created = true });
+            return RedirectToPage("/Orders/Track", new { code = order.OrderCode, created = true });
         }
         catch (OrderValidationException exception)
         {

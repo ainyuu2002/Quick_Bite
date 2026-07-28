@@ -3,205 +3,202 @@
 @using QuickBite.Models
 @{
     ViewData["Title"] = "Theo dõi đơn hàng";
-    var progressStatuses = new[]
-    {
-        OrderStatus.Pending,
-        OrderStatus.Confirmed,
-        OrderStatus.Preparing,
-        OrderStatus.Ready,
-        OrderStatus.Completed
-    };
+    var order = Model.Order;
+    var isDelivery = order?.OrderType == OrderType.Delivery;
+    var progressStatuses = isDelivery
+        ? new[] { OrderStatus.Pending, OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Delivering, OrderStatus.Completed }
+        : new[] { OrderStatus.Pending, OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Completed };
+    var badStatuses = new[] { OrderStatus.Cancelled, OrderStatus.Rejected, OrderStatus.Expired, OrderStatus.DeliveryFailed, OrderStatus.NoShow };
+    var isBad = order != null && badStatuses.Contains(order.Status);
+    var currentIndex = order == null ? -1 : Array.IndexOf(progressStatuses, order.Status);
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <h1 class="mb-1">Theo dõi đơn hàng</h1>
-        <p class="text-muted mb-0">Xem trạng thái của tất cả đơn hàng đã đặt.</p>
+        <p class="text-muted mb-0">Nhập mã tra cứu (ví dụ QB-7K3M9X) để xem trạng thái đơn.</p>
     </div>
     <a asp-page="/Menu/Index" class="btn btn-outline-primary">Tiếp tục chọn món</a>
 </div>
 
-@if (Model.Orders.Count == 0)
+@if (Model.Created)
 {
-    <div class="card shadow-sm track-search-card">
-        <div class="card-body p-4">
-            <h2 class="h4">Tra cứu bằng số điện thoại</h2>
-            <p class="text-muted">
-                Nhập số điện thoại đã đặt hàng. Hệ thống sẽ hiển thị tất cả đơn của số này.
-            </p>
-            <form method="post" asp-page-handler="Lookup" class="row g-2">
-                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                <div class="col-sm-8">
-                    <label asp-for="Phone" class="visually-hidden">Số điện thoại</label>
-                    <input asp-for="Phone" class="form-control" inputmode="tel"
-                           autocomplete="tel" placeholder="Ví dụ: 0901234567" />
-                    <span asp-validation-for="Phone" class="text-danger"></span>
-                </div>
-                <div class="col-sm-4 d-grid">
-                    <button type="submit" class="btn btn-primary">Tra cứu</button>
-                </div>
-            </form>
-        </div>
+    <div class="alert alert-success">
+        Đặt hàng thành công! Mã tra cứu của bạn là <strong>@Model.Code</strong> — hãy lưu lại để theo dõi đơn.
     </div>
 }
-else
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
 {
-    <div class="text-end mb-3">
-        <form method="post" asp-page-handler="Clear">
-            <button type="submit" class="btn btn-sm btn-outline-secondary">Tra cứu đơn khác</button>
+    <div class="alert alert-success">@Model.Message</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="card shadow-sm mb-4 track-search-card">
+    <div class="card-body p-4">
+        <h2 class="h5">Tra cứu bằng mã đơn</h2>
+        <form method="post" asp-page-handler="Lookup" class="row g-2">
+            <div class="col-sm-8">
+                <label asp-for="Code" class="visually-hidden"></label>
+                <input asp-for="Code" class="form-control" placeholder="QB-XXXXXX" autocomplete="off" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <div class="col-sm-4 d-grid">
+                <button type="submit" class="btn btn-primary">Tra cứu</button>
+            </div>
         </form>
     </div>
+</div>
 
-    @if (Model.Created)
-    {
-        <div class="alert alert-success">
-            Đặt hàng thành công! Hãy dùng số điện thoại đã đăng ký để tra cứu đơn.
+@if (Model.Searched && order == null)
+{
+    <div class="alert alert-warning">Không tìm thấy đơn hàng với mã này. Vui lòng kiểm tra lại mã tra cứu.</div>
+}
+
+@if (order != null)
+{
+    <section data-order-track data-order-id="@order.Id"
+             data-status-changed="@Url.Page("/Orders/Track", null, new { code = order.OrderCode })">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap justify-content-between gap-3">
+                    <div>
+                        <span class="text-muted">Đơn hàng của</span>
+                        <h2 class="h3 mb-1">@order.CustomerName</h2>
+                        <p class="mb-1">Mã tra cứu: <strong>@order.OrderCode</strong></p>
+                        <small class="text-muted">Đặt lúc @order.CreatedAt.ToString("dd/MM/yyyy HH:mm") · @order.OrderType.ToDisplayText()</small>
+                    </div>
+                    <div class="text-md-end">
+                        <span class="text-muted">Trạng thái hiện tại</span>
+                        <div class="h5 text-primary mb-1">@order.Status.ToDisplayText()</div>
+                    </div>
+                </div>
+            </div>
         </div>
-    }
 
-    @if (!string.IsNullOrWhiteSpace(Model.Message))
-    {
-        <div class="alert alert-success">@Model.Message</div>
-    }
-
-    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-    {
-        <div class="alert alert-danger">@Model.ErrorMessage</div>
-    }
-
-    <div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <span>
-            Tìm thấy <strong>@Model.Orders.Count</strong> đơn hàng cho mã tra cứu @Model.MaskedPhone.
-            Đang hiển thị đơn mới nhất.
-        </span>
-        @if (Model.Orders.Count > 1)
+        @if (isBad)
         {
-            <button type="button" class="btn btn-sm btn-outline-primary"
-                    data-toggle-order-history
-                    data-total-orders="@Model.Orders.Count"
-                    aria-expanded="false">
-                Hiển thị tất cả (@Model.Orders.Count)
-            </button>
+            <div class="alert alert-danger">
+                Đơn hàng ở trạng thái <strong>@order.Status.ToDisplayText()</strong>.
+            </div>
         }
-    </div>
-
-    <div data-orders-track data-status-url="@Url.Page("/Orders/Track", "Status")">
-        @for (var orderIndex = 0; orderIndex < Model.Orders.Count; orderIndex++)
+        else
         {
-            var order = Model.Orders[orderIndex];
-            <section class="order-history-item @(orderIndex > 0 ? "d-none" : "")"
-                     data-order-track
-                     data-order-id="@order.Id"
-                     data-order-history-extra="@(orderIndex > 0 ? "true" : "false")"
-                     data-current-status="@((int)order.Status)">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <div class="d-flex flex-wrap justify-content-between gap-3">
-                            <div>
-                                <span class="text-muted">Đơn hàng của</span>
-                                <h2 class="h3 mb-1">@order.CustomerName</h2>
-                                <p class="mb-1">Mã tra cứu: @Model.MaskedPhone</p>
-                                <small class="text-muted">Đặt lúc @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
-                            </div>
-                            <div class="text-md-end">
-                                <span class="text-muted">Trạng thái hiện tại</span>
-                                <div class="h5 text-primary mb-1" data-current-status-text>
-                                    @order.Status.ToDisplayText()
-                                </div>
-                                <small class="text-muted">Tự động cập nhật · <span data-last-updated>vừa xong</span></small>
-                            </div>
-                        </div>
-                        <div class="border-top mt-3 pt-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                            <div>
-                                <span class="text-muted">Phương thức thanh toán:</span>
-                                <strong>@order.PaymentMethod.ToDisplayText()</strong>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                    data-toggle-order-details
-                                    aria-controls="order-details-@order.Id"
-                                    aria-expanded="false">
-                                Xem chi tiết
-                            </button>
-                        </div>
+            <div class="order-progress mb-4" aria-label="Tiến trình đơn hàng">
+                @for (var stepIndex = 0; stepIndex < progressStatuses.Length; stepIndex++)
+                {
+                    var status = progressStatuses[stepIndex];
+                    var isCurrent = stepIndex == currentIndex;
+                    var isComplete = currentIndex >= 0 && stepIndex < currentIndex;
+                    <div class="order-progress-step @(isCurrent ? "is-current" : "") @(isComplete ? "is-complete" : "")"
+                         aria-current="@(isCurrent ? "step" : null)">
+                        <span class="order-progress-marker">@(stepIndex + 1)</span>
+                        <span class="order-progress-label">@status.ToDisplayText()</span>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (order.Status == OrderStatus.Pending)
+        {
+            <form method="post" asp-page-handler="Cancel" class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <label class="form-label">Lý do hủy đơn</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <select name="reason" class="form-select" style="max-width: 320px;" required>
+                            <option value="">— Chọn lý do —</option>
+                            @foreach (var reason in Model.CancelReasons)
+                            {
+                                <option value="@reason.Text">@reason.Text</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-outline-danger"
+                                onclick="return confirm('Bạn có chắc muốn hủy đơn này?');">
+                            Hủy đơn hàng
+                        </button>
                     </div>
                 </div>
+            </form>
+        }
 
-                <div id="order-details-@order.Id" class="d-none" data-order-details>
-                    <div class="order-progress mb-4" aria-label="Tiến trình đơn hàng">
-                    @foreach (var status in progressStatuses)
-                    {
-                        var isCurrent = order.Status != OrderStatus.Cancelled && status == order.Status;
-                        var isComplete = order.Status != OrderStatus.Cancelled
-                            && (int)status < (int)order.Status;
-                        <div class="order-progress-step @(isCurrent ? "is-current" : "") @(isComplete ? "is-complete" : "")"
-                             data-order-status="@((int)status)"
-                             aria-current="@(isCurrent ? "step" : null)">
-                            <span class="order-progress-marker">@((int)status + 1)</span>
-                            <span class="order-progress-label">@status.ToDisplayText()</span>
-                        </div>
-                    }
-                    </div>
-
-                    <div class="alert alert-danger @(order.Status == OrderStatus.Cancelled ? "" : "d-none")"
-                         data-order-cancelled>
-                        Đơn hàng đã bị hủy.
-                    </div>
-
-                    @if (order.Status == OrderStatus.Pending)
-                    {
-                        <form method="post" asp-page-handler="Cancel" class="mb-4" data-cancel-order-form>
-                            <input type="hidden" name="orderId" value="@order.Id" />
-                            <button type="submit" class="btn btn-outline-danger"
-                                    onclick="return confirm('Bạn có chắc muốn hủy đơn này?');">
-                                Hủy đơn hàng
-                            </button>
-                        </form>
-                    }
-
-                    <div class="card shadow-sm">
-                        <div class="card-header fw-semibold">Chi tiết đơn hàng</div>
-                        <div class="table-responsive">
-                            <table class="table align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Món ăn</th>
-                                    <th class="text-center">Số lượng</th>
-                                    <th class="text-end">Đơn giá</th>
-                                    <th class="text-end">Thành tiền</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in order.Items)
-                                {
-                                    <tr>
-                                        <td>@(item.MenuItem?.Name ?? $"Món #{item.MenuItemId}")</td>
-                                        <td class="text-center">@item.Quantity</td>
-                                        <td class="text-end">@item.UnitPrice.ToString("N0") đ</td>
-                                        <td class="text-end fw-semibold">@item.LineTotal.ToString("N0") đ</td>
-                                    </tr>
-                                }
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <th colspan="3" class="text-end">Tổng cộng</th>
-                                    <th class="text-end text-primary">@order.Total.ToString("N0") đ</th>
-                                </tr>
-                            </tfoot>
-                            </table>
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(order.Note))
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Chi tiết đơn hàng</div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Món ăn</th>
+                            <th class="text-center">Số lượng</th>
+                            <th class="text-end">Đơn giá</th>
+                            <th class="text-end">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in order.Items)
                         {
-                            <div class="card-footer"><strong>Ghi chú:</strong> @order.Note</div>
+                            <tr>
+                                <td>@(item.MenuItem?.Name ?? $"Món #{item.MenuItemId}")</td>
+                                <td class="text-center">@item.Quantity</td>
+                                <td class="text-end">@item.UnitPrice.ToString("N0") đ</td>
+                                <td class="text-end fw-semibold">@item.LineTotal.ToString("N0") đ</td>
+                            </tr>
                         }
-                    </div>
-                </div>
-            </section>
-        }
-    </div>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end">Tiền món</td>
+                            <td class="text-end">@order.Subtotal.ToString("N0") đ</td>
+                        </tr>
+                        @if (order.DeliveryFee > 0)
+                        {
+                            <tr>
+                                <td colspan="3" class="text-end">Phí giao hàng</td>
+                                <td class="text-end">@order.DeliveryFee.ToString("N0") đ</td>
+                            </tr>
+                        }
+                        <tr>
+                            <th colspan="3" class="text-end">Tổng cộng</th>
+                            <th class="text-end text-primary">@order.Total.ToString("N0") đ</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            @if (order.OrderType == OrderType.Delivery && !string.IsNullOrWhiteSpace(order.Address))
+            {
+                <div class="card-footer"><strong>Giao tới:</strong> @order.Address</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(order.Note))
+            {
+                <div class="card-footer"><strong>Ghi chú:</strong> @order.Note</div>
+            }
+        </div>
+    </section>
 }
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-    <script src="~/js/order-track.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            var track = document.querySelector('[data-order-track]');
+            if (!track || !window.signalR) {
+                return;
+            }
+            var orderId = parseInt(track.getAttribute('data-order-id'), 10);
+            var connection = new signalR.HubConnectionBuilder()
+                .withUrl('/orderHub')
+                .withAutomaticReconnect()
+                .build();
+            connection.on('OrderStatusChanged', function () {
+                window.location.reload();
+            });
+            connection.start().then(function () {
+                return connection.invoke('WatchOrder', orderId);
+            }).catch(function () { });
+        })();
+    </script>
 }

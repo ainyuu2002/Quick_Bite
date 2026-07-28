@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Models;
+using QuickBite.Services;
 
 static void Assert(bool condition, string message)
 {
@@ -79,3 +80,19 @@ Assert(!OrderStatus.Ready.CanTransitionTo(OrderStatus.Delivering, OrderType.Pick
 Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.NoShow, OrderType.Pickup), "Đơn Pickup: Ready -> NoShow.");
 
 Console.WriteLine("Order state machine v2 tests passed.");
+
+const string codeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+var sampleCode = OrderCodeGenerator.Generate();
+Assert(sampleCode.StartsWith("QB-"), "Mã tra cứu phải bắt đầu bằng QB-.");
+Assert(sampleCode.Length == 9, "Mã tra cứu mặc định dài 9 ký tự (QB- + 6).");
+Assert(sampleCode[3..].All(character => codeAlphabet.Contains(character)),
+    "Mã chỉ dùng ký tự không nhập nhằng (bỏ I, O, 0, 1).");
+
+var generatedCodes = new HashSet<string>();
+for (var index = 0; index < 500; index++)
+{
+    generatedCodes.Add(OrderCodeGenerator.Generate());
+}
+Assert(generatedCodes.Count > 450, "Mã tra cứu phải đủ ngẫu nhiên (ít trùng).");
+
+Console.WriteLine("Order code generator tests passed.");
