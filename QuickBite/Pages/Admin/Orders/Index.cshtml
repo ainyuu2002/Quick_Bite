@@ -184,6 +184,15 @@
                                             <dd>@statusReason</dd>
                                         </div>
                                     }
+                                    @if (order.Status is OrderStatus.Cancelled or OrderStatus.Rejected
+                                            or OrderStatus.Expired or OrderStatus.DeliveryFailed or OrderStatus.NoShow
+                                        && (order.PaymentStatus == PaymentStatus.Paid || order.DepositPaid))
+                                    {
+                                        <div>
+                                            <dt>Hoàn tiền</dt>
+                                            <dd><span class="badge badge--danger">⚠ Đã thu tiền/cọc — cần hoàn thủ công</span></dd>
+                                        </div>
+                                    }
                                     <div>
                                         <dt>Trạng thái thanh toán</dt>
                                         <dd>
@@ -372,7 +381,7 @@
                                                 <span class="reason-group" data-reason-group>
                                                     <select name="reason" class="input" required aria-label="Lý do hủy đơn" data-reason-select>
                                                         <option value="">— Lý do hủy —</option>
-                                                        @foreach (var reasonOption in Model.ReasonsFor(OrderStatus.Cancelled))
+                                                        @foreach (var reasonOption in Model.ReasonsFor(OrderStatus.Rejected))
                                                         {
                                                             <option value="@reasonOption.Text">@reasonOption.Text</option>
                                                         }

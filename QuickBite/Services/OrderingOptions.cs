@@ -23,4 +23,6 @@ public sealed class OrderingOptions
     public int PartyMinLeadHours { get; set; } = 24;
 
     public int PartyDepositTimeoutMinutes { get; set; } = 30;
+
+    public int PartyReviewTimeoutHours { get; set; } = 24;
 }

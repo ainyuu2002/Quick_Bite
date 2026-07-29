@@ -38,6 +38,12 @@ public class IndexModel : PageModel
         OrderStatus nextStatus,
         CancellationToken cancellationToken)
     {
+        if (nextStatus is not (OrderStatus.Preparing or OrderStatus.Ready))
+        {
+            TempData["ErrorMessage"] = "Thao tác không hợp lệ cho bếp.";
+            return RedirectToPage();
+        }
+
         var actorAccountId = int.TryParse(
             User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
             ? accountId

@@ -48,6 +48,12 @@ public class IndexModel : PageModel
         string? reasonOther,
         CancellationToken cancellationToken)
     {
+        if (nextStatus is not (OrderStatus.Delivering or OrderStatus.Completed or OrderStatus.DeliveryFailed))
+        {
+            TempData["ErrorMessage"] = "Thao tác không hợp lệ cho shipper.";
+            return RedirectToPage();
+        }
+
         var actorAccountId = int.TryParse(
             User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
             ? accountId

@@ -90,6 +90,25 @@ public sealed class OrderExpiryService : BackgroundService
                 cancellationToken);
         }
 
+        var reviewCutoff = now.AddHours(-_options.PartyReviewTimeoutHours);
+        var unreviewedPartyIds = await db.Orders
+            .Where(order => order.Status == OrderStatus.PendingReview
+                && order.IsPartyOrder
+                && order.ApprovedAt == null
+                && order.CreatedAt < reviewCutoff)
+            .Select(order => order.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var orderId in unreviewedPartyIds)
+        {
+            await TryChangeAsync(
+                orderService,
+                orderId,
+                OrderStatus.Expired,
+                "Quá hạn xét duyệt đơn tiệc.",
+                cancellationToken);
+        }
+
         var depositCutoff = now.AddMinutes(-_options.PartyDepositTimeoutMinutes);
         var depositExpiredIds = await db.Orders
             .Where(order => order.Status == OrderStatus.PendingReview

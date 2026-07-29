@@ -140,6 +140,14 @@ public class IndexModel : PageModel
         sortDir = sortDir == "asc" ? "asc" : "desc";
         pageNumber = Math.Max(1, pageNumber);
 
+        var isManager = User.IsInRole(nameof(AccountRole.Admin))
+            || User.IsInRole(nameof(AccountRole.Manager));
+        if (nextStatus == OrderStatus.Cancelled && !isManager)
+        {
+            TempData["ErrorMessage"] = "Chỉ quản lý mới được hủy đơn.";
+            return RedirectToPage(new { status = currentStatus, search, sortBy, sortDir, pageNumber });
+        }
+
         try
         {
             var actorAccountId = int.TryParse(
