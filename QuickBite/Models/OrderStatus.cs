@@ -62,6 +62,11 @@ public static class OrderStatusExtensions
             return false;
         }
 
+        if (orderType == OrderType.Delivery && next == OrderStatus.NoShow)
+        {
+            return false;
+        }
+
         if (orderType == OrderType.Delivery
             && current == OrderStatus.Ready
             && next == OrderStatus.Completed)

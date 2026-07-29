@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using QuickBite.Models;
 using QuickBite.Services;
 
 namespace QuickBite.Hubs
@@ -19,6 +20,11 @@ namespace QuickBite.Hubs
         [Authorize]
         public async Task JoinStaff()
         {
+            if (!InAnyRole(AccountRole.Admin, AccountRole.Manager, AccountRole.Staff))
+            {
+                return;
+            }
+
             var accountId = GetAccountId();
             if (accountId is null)
             {
@@ -40,11 +46,15 @@ namespace QuickBite.Hubs
 
         [Authorize]
         public Task JoinKitchen()
-            => Groups.AddToGroupAsync(Context.ConnectionId, "kitchen");
+            => InAnyRole(AccountRole.Admin, AccountRole.Manager, AccountRole.Kitchen)
+                ? Groups.AddToGroupAsync(Context.ConnectionId, "kitchen")
+                : Task.CompletedTask;
 
         [Authorize]
         public Task JoinShipper()
-            => Groups.AddToGroupAsync(Context.ConnectionId, "shipper");
+            => InAnyRole(AccountRole.Admin, AccountRole.Manager, AccountRole.Shipper)
+                ? Groups.AddToGroupAsync(Context.ConnectionId, "shipper")
+                : Task.CompletedTask;
 
         public Task WatchOrder(string orderCode)
             => Groups.AddToGroupAsync(Context.ConnectionId, $"order-{orderCode}");
@@ -60,6 +70,9 @@ namespace QuickBite.Hubs
 
             await base.OnDisconnectedAsync(exception);
         }
+
+        private bool InAnyRole(params AccountRole[] roles)
+            => roles.Any(role => Context.User?.IsInRole(role.ToString()) == true);
 
         private int? GetAccountId()
             => int.TryParse(

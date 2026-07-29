@@ -78,6 +78,7 @@ Assert(OrderStatus.Delivering.CanTransitionTo(OrderStatus.Completed, OrderType.D
 Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.Completed, OrderType.Pickup), "Đơn Pickup: Ready -> Completed.");
 Assert(!OrderStatus.Ready.CanTransitionTo(OrderStatus.Delivering, OrderType.Pickup), "Đơn Pickup không có bước Delivering.");
 Assert(OrderStatus.Ready.CanTransitionTo(OrderStatus.NoShow, OrderType.Pickup), "Đơn Pickup: Ready -> NoShow.");
+Assert(!OrderStatus.Ready.CanTransitionTo(OrderStatus.NoShow, OrderType.Delivery), "Đơn Giao không được NoShow (chỉ Pickup).");
 
 Assert(OrderStatus.PendingReview.CanTransitionTo(OrderStatus.Confirmed), "Đặt tiệc: PendingReview -> Confirmed (sau cọc).");
 Assert(OrderStatus.PendingReview.CanTransitionTo(OrderStatus.Rejected), "Đặt tiệc: PendingReview -> Rejected.");

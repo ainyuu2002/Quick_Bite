@@ -28,7 +28,6 @@ public class Order
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    /// <summary>Tổng tiền chốt tại thời điểm đặt (BR-03) = tiền món + phí giao.</summary>
     [Column(TypeName = "decimal(18,0)")]
     public decimal Total { get; set; }
 
@@ -57,10 +56,6 @@ public class Order
 
     public DateTime? ApprovedAt { get; set; }
 
-    /// <summary>
-    /// Nhân viên đã bấm "Nhận đơn" (Pending → Accepted). Null = chưa ai nhận.
-    /// Chốt một lần, không đổi khi đơn đi tiếp các trạng thái sau.
-    /// </summary>
     public int? AcceptedByAccountId { get; set; }
 
     public Account? AcceptedByAccount { get; set; }

@@ -114,6 +114,7 @@ public sealed class OrderService
         var openOrderCount = await _db.Orders.CountAsync(
             existing => existing.Phone == normalizedPhone
                 && (existing.Status == OrderStatus.Pending
+                    || existing.Status == OrderStatus.PendingReview
                     || existing.Status == OrderStatus.Confirmed
                     || existing.Status == OrderStatus.Preparing
                     || existing.Status == OrderStatus.Ready
@@ -175,7 +176,7 @@ public sealed class OrderService
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
             OrderType = request.OrderType,
             PaymentMethod = request.PaymentMethod,
-            PaymentStatus = request.PaymentMethod == PaymentMethod.BankTransfer
+            PaymentStatus = !request.IsParty && request.PaymentMethod == PaymentMethod.BankTransfer
                 ? PaymentStatus.Paid
                 : PaymentStatus.Unpaid,
             DeliveryFee = deliveryFee,
@@ -352,9 +353,7 @@ public sealed class OrderService
         order.Status = nextStatus;
         AddStatusHistory(order, fromStatus, nextStatus, trimmedReason, actorAccountId);
 
-        if (nextStatus == OrderStatus.Completed
-            && order.PaymentMethod == PaymentMethod.Cash
-            && order.PaymentStatus == PaymentStatus.Unpaid)
+        if (nextStatus == OrderStatus.Completed && order.PaymentStatus == PaymentStatus.Unpaid)
         {
             order.PaymentStatus = PaymentStatus.Paid;
         }
@@ -429,7 +428,7 @@ public sealed class OrderService
             OrderId = order.Id,
             FromStatus = fromStatus,
             ToStatus = toStatus,
-            Reason = reason,
+            Reason = reason is { Length: > 300 } ? reason[..300] : reason,
             ChangedByAccountId = actorAccountId,
             ChangedAt = DateTime.Now
         });
