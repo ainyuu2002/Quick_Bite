@@ -27,6 +27,19 @@
     <div class="alert alert-success">
         Đặt hàng thành công! Mã tra cứu của bạn là <strong>@Model.Code</strong> — hãy lưu lại để theo dõi đơn.
     </div>
+
+    @if (Model.SuggestRegistration)
+    {
+        <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>
+                ⭐ Đơn này đáng <strong>@Model.PotentialPoints điểm</strong> —
+                tạo tài khoản để tích điểm, đổi voucher và đặt lại món chỉ với một chạm.
+            </span>
+            <a asp-page="/Account/Register"
+               asp-route-phone="@Model.RegistrationPhone"
+               class="btn btn-sm btn-primary">Tạo tài khoản</a>
+        </div>
+    }
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.Message))
@@ -151,6 +164,15 @@
                     </div>
                 </div>
             </form>
+        }
+
+        @if (order.Status == OrderStatus.Completed)
+        {
+            <div class="mb-4">
+                <a asp-page="/Orders/Feedback"
+                   asp-route-code="@order.OrderCode"
+                   class="btn btn-outline-primary">Đánh giá / Phản ánh đơn này</a>
+            </div>
         }
 
         <div class="card shadow-sm">

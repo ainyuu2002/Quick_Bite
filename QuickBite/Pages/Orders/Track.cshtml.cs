@@ -9,10 +9,14 @@ namespace QuickBite.Pages.Orders;
 public sealed class TrackModel : PageModel
 {
     private readonly OrderService _orderService;
+    private readonly CustomerAccountService _accounts;
 
-    public TrackModel(OrderService orderService)
+    public TrackModel(
+        OrderService orderService,
+        CustomerAccountService accounts)
     {
         _orderService = orderService;
+        _accounts = accounts;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -28,6 +32,12 @@ public sealed class TrackModel : PageModel
     public bool Created { get; private set; }
 
     public bool Searched { get; private set; }
+
+    public bool SuggestRegistration { get; private set; }
+
+    public int PotentialPoints { get; private set; }
+
+    public string RegistrationPhone { get; private set; } = string.Empty;
 
     [TempData]
     public string? ErrorMessage { get; set; }
@@ -46,6 +56,21 @@ public sealed class TrackModel : PageModel
 
         Searched = true;
         Order = await _orderService.GetByCodeAsync(Code, cancellationToken);
+
+        if (Created && Order is not null)
+        {
+            var isSignedIn = await CustomerAuth.GetCustomerIdAsync(HttpContext) is not null;
+            var isRegistered = await _accounts.IsPhoneRegisteredAsync(
+                Order.Phone,
+                cancellationToken);
+
+            if (!isSignedIn && !isRegistered)
+            {
+                SuggestRegistration = true;
+                RegistrationPhone = Order.Phone;
+                PotentialPoints = LoyaltyService.PointsFor(Order.Total);
+            }
+        }
 
         if (Order is { Status: OrderStatus.Pending })
         {

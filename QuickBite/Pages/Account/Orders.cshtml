@@ -71,7 +71,7 @@ else
                     </form>
                     @if (order.Status == OrderStatus.Completed)
                     {
-                        <a asp-page="/Orders/Feedback" asp-route-orderId="@order.Id"
+                        <a asp-page="/Orders/Feedback" asp-route-code="@order.OrderCode"
                            class="btn btn-sm btn-outline-primary">Đánh giá / Phản ánh</a>
                     }
                 </div>

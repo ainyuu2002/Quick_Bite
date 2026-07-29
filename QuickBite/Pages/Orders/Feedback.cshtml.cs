@@ -11,17 +11,17 @@ public sealed class FeedbackModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly ComplaintService _complaints;
-    private readonly CustomerAccountService _accounts;
 
     public FeedbackModel(
         AppDbContext db,
-        ComplaintService complaints,
-        CustomerAccountService accounts)
+        ComplaintService complaints)
     {
         _db = db;
         _complaints = complaints;
-        _accounts = accounts;
     }
+
+    [BindProperty(SupportsGet = true)]
+    public string? Code { get; set; }
 
     public Order Order { get; private set; } = null!;
 
@@ -35,27 +35,29 @@ public sealed class FeedbackModel : PageModel
     [TempData]
     public string? ErrorMessage { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(int orderId, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
-        return await LoadAsync(orderId, cancellationToken)
+        return await LoadAsync(Code, cancellationToken)
             ? Page()
             : RedirectToPage("/Orders/Track");
     }
 
     public async Task<IActionResult> OnPostRateAsync(
-        int orderId,
         int stars,
         CancellationToken cancellationToken)
     {
-        var phone = await ResolvePhoneAsync();
-        if (phone is null)
+        if (!await LoadAsync(Code, cancellationToken))
         {
             return RedirectToPage("/Orders/Track");
         }
 
         try
         {
-            await _complaints.RateAsync(orderId, phone, stars, cancellationToken);
+            await _complaints.RateAsync(
+                Order.Id,
+                Order.Phone,
+                stars,
+                cancellationToken);
             Message = "Cảm ơn bạn đã đánh giá!";
         }
         catch (CustomerFlowException exception)
@@ -63,17 +65,15 @@ public sealed class FeedbackModel : PageModel
             ErrorMessage = exception.Message;
         }
 
-        return RedirectToPage(new { orderId });
+        return RedirectToPage(new { code = Code });
     }
 
     public async Task<IActionResult> OnPostComplainAsync(
-        int orderId,
         ComplaintCategory category,
         string description,
         CancellationToken cancellationToken)
     {
-        var phone = await ResolvePhoneAsync();
-        if (phone is null)
+        if (!await LoadAsync(Code, cancellationToken))
         {
             return RedirectToPage("/Orders/Track");
         }
@@ -81,12 +81,17 @@ public sealed class FeedbackModel : PageModel
         if (string.IsNullOrWhiteSpace(description))
         {
             ErrorMessage = "Vui lòng mô tả vấn đề bạn gặp phải.";
-            return RedirectToPage(new { orderId });
+            return RedirectToPage(new { code = Code });
         }
 
         try
         {
-            await _complaints.SubmitAsync(orderId, phone, category, description, cancellationToken);
+            await _complaints.SubmitAsync(
+                Order.Id,
+                Order.Phone,
+                category,
+                description,
+                cancellationToken);
             Message = "Đã gửi phản ánh. Quán sẽ liên hệ lại với bạn sớm nhất.";
         }
         catch (CustomerFlowException exception)
@@ -94,51 +99,41 @@ public sealed class FeedbackModel : PageModel
             ErrorMessage = exception.Message;
         }
 
-        return RedirectToPage(new { orderId });
+        return RedirectToPage(new { code = Code });
     }
 
-    private async Task<bool> LoadAsync(int orderId, CancellationToken cancellationToken)
+    private async Task<bool> LoadAsync(
+        string? code,
+        CancellationToken cancellationToken)
     {
-        var phone = await ResolvePhoneAsync();
-        if (phone is null)
+        if (string.IsNullOrWhiteSpace(code))
         {
             return false;
         }
 
+        var normalizedCode = code.Trim().ToUpperInvariant();
         var order = await _db.Orders
             .AsNoTracking()
-            .Include(o => o.Items)
-            .ThenInclude(i => i.MenuItem)
             .SingleOrDefaultAsync(
-                o => o.Id == orderId && o.Phone == phone,
+                item => item.OrderCode == normalizedCode,
                 cancellationToken);
         if (order is null)
         {
             return false;
         }
 
+        Code = order.OrderCode;
         Order = order;
         ExistingRating = await _db.InternalRatings
             .AsNoTracking()
-            .SingleOrDefaultAsync(r => r.OrderId == orderId, cancellationToken);
+            .SingleOrDefaultAsync(
+                rating => rating.OrderId == order.Id,
+                cancellationToken);
         ExistingComplaint = await _db.Complaints
             .AsNoTracking()
-            .SingleOrDefaultAsync(c => c.OrderId == orderId, cancellationToken);
+            .SingleOrDefaultAsync(
+                complaint => complaint.OrderId == order.Id,
+                cancellationToken);
         return true;
-    }
-
-    private async Task<string?> ResolvePhoneAsync()
-    {
-        var customerId = await CustomerAuth.GetCustomerIdAsync(HttpContext);
-        if (customerId is not null)
-        {
-            var customer = await _accounts.GetAsync(customerId.Value);
-            if (customer is not null)
-            {
-                return customer.Phone;
-            }
-        }
-
-        return OrderTrackingSession.GetTrackedPhone(HttpContext.Session);
     }
 }

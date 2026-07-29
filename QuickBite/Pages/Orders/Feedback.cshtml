@@ -13,7 +13,9 @@
             · @Model.Order.Total.ToString("N0") đ
         </p>
     </div>
-    <a asp-page="/Orders/Track" class="btn btn-outline-secondary">Quay lại theo dõi đơn</a>
+    <a asp-page="/Orders/Track"
+       asp-route-code="@Model.Order.OrderCode"
+       class="btn btn-outline-secondary">Quay lại theo dõi đơn</a>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(Model.Message))
@@ -48,7 +50,7 @@
                         Đánh giá chỉ gửi riêng cho chủ quán, không hiển thị công khai.
                     </p>
                     <form method="post" asp-page-handler="Rate">
-                        <input type="hidden" name="orderId" value="@Model.Order.Id" />
+                        <input type="hidden" asp-for="Code" />
                         <div class="d-flex gap-2 mb-3">
                             @for (var stars = 1; stars <= 5; stars++)
                             {
@@ -92,7 +94,7 @@
                 else
                 {
                     <form method="post" asp-page-handler="Complain">
-                        <input type="hidden" name="orderId" value="@Model.Order.Id" />
+                        <input type="hidden" asp-for="Code" />
 
                         <div class="mb-3">
                             <label class="form-label" for="complaint-category">Vấn đề gặp phải</label>
