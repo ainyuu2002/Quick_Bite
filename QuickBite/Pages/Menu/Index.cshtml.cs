@@ -4,23 +4,30 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Models;
+using QuickBite.Modules.Operations.Reports;
 
 namespace QuickBite.Pages.Menu;
 
 public class IndexModel : PageModel
 {
     private const string CartKey = "Cart";
-    private const int PageSize = 12;
+    private const int PageSize = 9;
     private readonly AppDbContext _context;
+    private readonly IMenuPerformanceService _menuPerformance;
 
-    public IndexModel(AppDbContext context)
+    public IndexModel(
+        AppDbContext context,
+        IMenuPerformanceService menuPerformance)
     {
         _context = context;
+        _menuPerformance = menuPerformance;
     }
 
     public List<Category> Categories { get; private set; } = new();
 
     public List<MenuItem> MenuItems { get; private set; } = new();
+
+    public IReadOnlySet<int> BestSellerIds { get; private set; } = new HashSet<int>();
 
     [BindProperty(SupportsGet = true)]
     public int? CategoryId { get; set; }
@@ -150,6 +157,8 @@ public class IndexModel : PageModel
             .Skip((PageNumber - 1) * PageSize)
             .Take(PageSize)
             .ToListAsync();
+
+        BestSellerIds = await _menuPerformance.GetBestSellerIdsAsync();
     }
 
     private List<CartItem> GetCart()

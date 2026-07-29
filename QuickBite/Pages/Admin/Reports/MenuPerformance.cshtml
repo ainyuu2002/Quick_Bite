@@ -1,0 +1,148 @@
+@page
+@model QuickBite.Pages.Admin.Reports.MenuPerformanceModel
+
+@{
+    ViewData["Title"] = "Hiệu quả món";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Hiệu quả món</h1>
+        <p class="page-description">
+            Chỉ sử dụng đơn Completed. Doanh thu món là tổng dòng món trước giảm giá cấp đơn.
+        </p>
+    </div>
+    <a asp-page="./Revenue" class="btn btn--secondary">Báo cáo doanh thu</a>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert--danger" role="alert">@errorMessage</div>
+}
+
+<form method="get" class="toolbar menu-report-filter">
+    <div class="field">
+        <label asp-for="From" class="label">Từ ngày</label>
+        <input asp-for="From" type="date" class="input" />
+    </div>
+    <div class="field">
+        <label asp-for="To" class="label">Đến ngày</label>
+        <input asp-for="To" type="date" class="input" />
+    </div>
+    <div class="field">
+        <label asp-for="SaleStartsAt" class="label">Từ giờ</label>
+        <input asp-for="SaleStartsAt" type="time" class="input" />
+    </div>
+    <div class="field">
+        <label asp-for="SaleEndsAt" class="label">Đến giờ</label>
+        <input asp-for="SaleEndsAt" type="time" class="input" />
+    </div>
+    <button type="submit" class="btn btn--primary btn--sm">Xem báo cáo</button>
+</form>
+
+<div class="alert alert--info">
+    <strong>Hai bẫy đọc số:</strong>
+    món bán nhiều nhất chưa chắc tạo doanh thu cao nhất; doanh thu dòng món chưa trừ
+    voucher/khuyến mãi nên không dùng thay báo cáo kế toán. Món mới chưa đủ 30 ngày cũng
+    cần được xem xét riêng trước khi kết luận là món ế.
+</div>
+
+<div class="report-ranking-grid">
+    <section>
+        <h2 class="section-title">Xếp hạng theo số lượng</h2>
+        <div class="data-surface">
+            <table class="table">
+                <thead><tr><th>#</th><th>Món</th><th class="num">Số phần</th></tr></thead>
+                <tbody>
+                    @for (var index = 0; index < Model.Report.ByQuantity.Count; index++)
+                    {
+                        var item = Model.Report.ByQuantity[index];
+                        <tr>
+                            <td>@(index + 1)</td>
+                            <td>@item.Name</td>
+                            <td class="num">@item.Quantity</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="section-title">Xếp hạng theo doanh thu món</h2>
+        <div class="data-surface">
+            <table class="table">
+                <thead><tr><th>#</th><th>Món</th><th class="num">Doanh thu</th></tr></thead>
+                <tbody>
+                    @for (var index = 0; index < Model.Report.ByRevenue.Count; index++)
+                    {
+                        var item = Model.Report.ByRevenue[index];
+                        <tr>
+                            <td>@(index + 1)</td>
+                            <td>@item.Name</td>
+                            <td class="num">@item.GrossItemRevenue.ToString("N0") đ</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<section class="slow-items-section">
+    <h2 class="section-title">
+        Món bán dưới @Model.Settings.SlowItemThreshold phần trong 30 ngày
+    </h2>
+    <div class="data-surface">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Món</th>
+                    <th>Ngày tạo</th>
+                    <th class="num">Số phần</th>
+                    <th class="num">Doanh thu món</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Report.SlowItems.Any())
+                {
+                    <tr><td colspan="4"><p class="empty-state">Không có món dưới ngưỡng.</p></td></tr>
+                }
+                @foreach (var item in Model.Report.SlowItems)
+                {
+                    <tr>
+                        <td>@item.Name</td>
+                        <td>@item.CreatedAt.ToString("dd/MM/yyyy")</td>
+                        <td class="num">@item.Quantity</td>
+                        <td class="num">@item.GrossItemRevenue.ToString("N0") đ</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="form-surface report-settings">
+    <h2 class="section-title">Cấu hình nhãn và món ế</h2>
+    <form method="post" asp-page-handler="UpdateSettings" class="form-grid">
+        <div class="field">
+            <label asp-for="Settings.SlowItemThreshold" class="label">Ngưỡng món ế</label>
+            <input asp-for="Settings.SlowItemThreshold" type="number"
+                   min="1" max="1000" class="input" />
+            <span asp-validation-for="Settings.SlowItemThreshold" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Settings.BestSellerTopCount" class="label">Số món gắn “Bán chạy”</label>
+            <input asp-for="Settings.BestSellerTopCount" type="number"
+                   min="1" max="20" class="input" />
+            <span asp-validation-for="Settings.BestSellerTopCount" class="field-error"></span>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Lưu cấu hình</button>
+        </div>
+    </form>
+</section>

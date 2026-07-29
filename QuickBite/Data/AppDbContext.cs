@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBite.Models;
+using QuickBite.Modules.Operations.Ingredients;
+using QuickBite.Modules.Operations.MenuAvailability;
+using QuickBite.Modules.Operations.Store;
 
 namespace QuickBite.Data;
 
@@ -16,6 +19,19 @@ public class AppDbContext : DbContext
     public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
     public DbSet<ReasonCatalog> ReasonCatalogs => Set<ReasonCatalog>();
     public DbSet<PhoneBlacklist> PhoneBlacklists => Set<PhoneBlacklist>();
+    public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
+    public DbSet<DailyQuota> DailyQuotas => Set<DailyQuota>();
+    public DbSet<Ingredient> Ingredients => Set<Ingredient>();
+    public DbSet<DishIngredient> DishIngredients => Set<DishIngredient>();
+    public DbSet<RestockLog> RestockLogs => Set<RestockLog>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<OtpVerification> OtpVerifications => Set<OtpVerification>();
+    public DbSet<Promotion> Promotions => Set<Promotion>();
+    public DbSet<PromotionUsage> PromotionUsages => Set<PromotionUsage>();
+    public DbSet<Voucher> Vouchers => Set<Voucher>();
+    public DbSet<PointLedger> PointLedgers => Set<PointLedger>();
+    public DbSet<Complaint> Complaints => Set<Complaint>();
+    public DbSet<InternalRating> InternalRatings => Set<InternalRating>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -43,6 +59,12 @@ public class AppDbContext : DbContext
           .HasIndex(u => u.Username)
           .IsUnique();
 
+        mb.Entity<Account>()
+          .ToTable(table =>
+              table.HasCheckConstraint(
+                  "CK_Accounts_HourlyRate",
+                  "[HourlyRate] >= 0"));
+
         // Người nhận đơn: Restrict để không bao giờ mất dấu ai đã xử lý đơn cũ.
         // Muốn "xoá" nhân viên thì tắt Account.IsActive, không xoá cứng.
         mb.Entity<Order>()
@@ -61,12 +83,138 @@ public class AppDbContext : DbContext
         mb.Entity<WorkSession>()
           .HasIndex(w => new { w.AccountId, w.CheckInAt });
 
+        mb.Entity<WorkSession>()
+          .HasIndex(w => w.ApprovalStatus);
+
+        mb.Entity<WorkSession>()
+          .ToTable(table =>
+              table.HasCheckConstraint(
+                  "CK_WorkSessions_ApprovalStatus",
+                  "[ApprovalStatus] IN (0, 1)"));
+
+        mb.Entity<WorkSession>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(w => w.ApprovedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<StoreSetting>()
+          .ToTable(table =>
+          {
+              table.HasCheckConstraint("CK_StoreSettings_Singleton", "[Id] = 1");
+              table.HasCheckConstraint(
+                  "CK_StoreSettings_SlowItemThreshold",
+                  "[SlowItemThreshold] BETWEEN 1 AND 1000");
+              table.HasCheckConstraint(
+                  "CK_StoreSettings_BestSellerTopCount",
+                  "[BestSellerTopCount] BETWEEN 1 AND 20");
+          });
+
+        mb.Entity<StoreSetting>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(s => s.UpdatedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<DailyQuota>()
+          .ToTable(table =>
+          {
+              table.HasCheckConstraint(
+                  "CK_DailyQuotas_DailyLimit",
+                  "[DailyLimit] > 0");
+              table.HasCheckConstraint(
+                  "CK_DailyQuotas_ReservedQuantity",
+                  "[ReservedQuantity] >= 0");
+              table.HasCheckConstraint(
+                  "CK_DailyQuotas_SaleWindow",
+                  "([SaleStartsAt] IS NULL AND [SaleEndsAt] IS NULL) OR " +
+                  "([SaleStartsAt] IS NOT NULL AND [SaleEndsAt] IS NOT NULL)");
+          });
+
+        mb.Entity<DailyQuota>()
+          .HasIndex(quota => quota.MenuItemId)
+          .IsUnique();
+
+        mb.Entity<DailyQuota>()
+          .HasOne(quota => quota.MenuItem)
+          .WithOne()
+          .HasForeignKey<DailyQuota>(quota => quota.MenuItemId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        mb.Entity<DailyQuota>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(quota => quota.UpdatedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<Ingredient>()
+          .HasIndex(item => item.Name)
+          .IsUnique();
+
+        mb.Entity<Ingredient>()
+          .HasIndex(item => item.Status);
+
+        mb.Entity<Ingredient>()
+          .ToTable(table =>
+              table.HasCheckConstraint(
+                  "CK_Ingredients_Status",
+                  "[Status] IN (0, 1, 2)"));
+
+        mb.Entity<Ingredient>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(item => item.UpdatedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<DishIngredient>()
+          .HasKey(link => new { link.IngredientId, link.MenuItemId });
+
+        mb.Entity<DishIngredient>()
+          .HasOne(link => link.Ingredient)
+          .WithMany(item => item.Dishes)
+          .HasForeignKey(link => link.IngredientId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        mb.Entity<DishIngredient>()
+          .HasOne(link => link.MenuItem)
+          .WithMany()
+          .HasForeignKey(link => link.MenuItemId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        mb.Entity<RestockLog>()
+          .ToTable(table =>
+          {
+              table.HasCheckConstraint(
+                  "CK_RestockLogs_Action",
+                  "[Action] IN (0, 1)");
+              table.HasCheckConstraint(
+                  "CK_RestockLogs_PreviousStatus",
+                  "[PreviousStatus] IN (0, 1, 2)");
+              table.HasCheckConstraint(
+                  "CK_RestockLogs_NewStatus",
+                  "[NewStatus] IN (0, 1, 2)");
+          });
+
+        mb.Entity<RestockLog>()
+          .HasOne(log => log.Ingredient)
+          .WithMany(item => item.Logs)
+          .HasForeignKey(log => log.IngredientId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<RestockLog>()
+          .HasOne<Account>()
+          .WithMany()
+          .HasForeignKey(log => log.ActorAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<RestockLog>()
+          .HasIndex(log => new { log.IngredientId, log.CreatedAt });
+
         mb.Entity<Order>().HasIndex(o => o.Status);
         mb.Entity<Order>().HasIndex(o => o.CreatedAt);
         mb.Entity<Order>()
           .Property(o => o.PaymentMethod)
           .HasDefaultValue(PaymentMethod.Cash);
-
         mb.Entity<OrderStatusHistory>()
           .HasOne(h => h.Order)
           .WithMany()
@@ -84,112 +232,91 @@ public class AppDbContext : DbContext
         mb.Entity<Order>().HasIndex(o => o.OrderCode).IsUnique();
         mb.Entity<PhoneBlacklist>().HasIndex(b => b.Phone).IsUnique();
 
-        SeedReferenceData(mb);
-    }
+        mb.Entity<Order>()
+          .Property(o => o.DiscountAmount)
+          .HasDefaultValue(0m);
 
-    private static void SeedReferenceData(ModelBuilder mb)
-    {
-        var seedDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        mb.Entity<Customer>()
+          .HasIndex(c => c.Phone)
+          .IsUnique();
 
-        mb.Entity<Account>().HasData(
-            new Account
-            {
-                Id = 1,
-                Username = "admin",
-                PasswordHash = "AQAAAAEAACcQAAAAEJFpZ+ufTGXPh6BKlRvKjXzXADutxFQ/qwL568hK7uH0t/S5bWeEtmfzhiKXcqSkmQ==",
-                FullName = "Chủ quán QuickBite",
-                Role = AccountRole.Admin,
-                IsActive = true
-            },
-            new Account
-            {
-                Id = 2,
-                Username = "manager",
-                PasswordHash = "AQAAAAIAAYagAAAAEGoFiVYx+Wgwqn9m1YSLrJInS2af1iMHtb562Y6KK6PBi8Kvcx4O+jkzHjmuTrMHtQ==",
-                FullName = "Quản lý ca",
-                Role = AccountRole.Manager,
-                IsActive = true
-            },
-            new Account
-            {
-                Id = 3,
-                Username = "staff",
-                PasswordHash = "AQAAAAIAAYagAAAAEHV+SCr2GoiocJowWlig57BqENDkrmrIWMuoiEouQVJPh8bbpDB8OCom/sEpf+35QA==",
-                FullName = "Nhân viên nhận đơn",
-                Role = AccountRole.Staff,
-                IsActive = true
-            },
-            new Account
-            {
-                Id = 4,
-                Username = "kitchen",
-                PasswordHash = "AQAAAAIAAYagAAAAEK9k5yyJ+GUBVAWApffAO0aTAaX3TdQPaLkwKkbTK6tDKVVrMIvVLZQwpvccTnj7lw==",
-                FullName = "Bếp",
-                Role = AccountRole.Kitchen,
-                IsActive = true
-            },
-            new Account
-            {
-                Id = 5,
-                Username = "shipper",
-                PasswordHash = "AQAAAAIAAYagAAAAEHWoZzeZv3ASHpz5XL84pUUBylB35RExme6xcmoUjnRoftIvgEx90xcppMehskjnqg==",
-                FullName = "Shipper",
-                Role = AccountRole.Shipper,
-                IsActive = true
-            });
+        mb.Entity<Order>()
+          .HasOne(o => o.Customer)
+          .WithMany()
+          .HasForeignKey(o => o.CustomerId)
+          .OnDelete(DeleteBehavior.Restrict);
 
-        mb.Entity<Category>().HasData(
-            new Category { Id = 1, Name = "Cơm", Description = "Các món cơm phần đầy đặn", DisplayOrder = 1 },
-            new Category { Id = 2, Name = "Phở & Bún", Description = "Món nước truyền thống", DisplayOrder = 2 },
-            new Category { Id = 3, Name = "Ăn vặt", Description = "Món ăn chơi, ăn kèm", DisplayOrder = 3 },
-            new Category { Id = 4, Name = "Đồ uống", Description = "Giải khát, cà phê, trà", DisplayOrder = 4 },
-            new Category { Id = 5, Name = "Tráng miệng", Description = "Chè, bánh ngọt, kem", DisplayOrder = 5 },
-            new Category { Id = 6, Name = "Món chay", Description = "Thanh đạm, phù hợp ngày rằm - mùng 1", DisplayOrder = 6 });
+        mb.Entity<Order>()
+          .HasOne(o => o.Promotion)
+          .WithMany()
+          .HasForeignKey(o => o.PromotionId)
+          .OnDelete(DeleteBehavior.Restrict);
 
-        mb.Entity<MenuItem>().HasData(
-            new MenuItem { Id = 1, CategoryId = 1, Name = "Cơm tấm sườn bì chả", Price = 45000, Description = "Sườn nướng than, bì, chả trứng, mỡ hành, nước mắm chua ngọt", ImageUrl = "https://picsum.photos/seed/comtam/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 2, CategoryId = 1, Name = "Cơm gà xối mỡ", Price = 40000, Description = "Đùi gà da giòn xối mỡ tỏi, cơm chiên nghệ, dưa leo", ImageUrl = "https://picsum.photos/seed/comga/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 3, CategoryId = 1, Name = "Cơm chiên dương châu", Price = 35000, Description = "Cơm chiên trứng, lạp xưởng, đậu que, cà rốt", ImageUrl = "https://picsum.photos/seed/comchien/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 4, CategoryId = 1, Name = "Cơm bò lúc lắc", Price = 55000, Description = "Bò mềm xào lúc lắc ớt chuông, khoai tây chiên ăn kèm", ImageUrl = "https://picsum.photos/seed/boluclac/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 5, CategoryId = 1, Name = "Cơm sườn nướng mật ong", Price = 48000, Description = "Sườn cốt lết ướp mật ong nướng, kim chi cải thảo", ImageUrl = "https://picsum.photos/seed/suonmatong/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 6, CategoryId = 2, Name = "Phở bò tái", Price = 40000, Description = "Nước dùng hầm xương 8 tiếng, bò tái mềm, bánh phở tươi", ImageUrl = "https://picsum.photos/seed/phobo/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 7, CategoryId = 2, Name = "Phở gà", Price = 35000, Description = "Gà ta xé, nước dùng thanh, hành lá gừng thái sợi", ImageUrl = "https://picsum.photos/seed/phoga/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 8, CategoryId = 2, Name = "Bún bò Huế", Price = 45000, Description = "Cay chuẩn vị Huế, giò heo, chả cua, rau sống đầy đủ", ImageUrl = "https://picsum.photos/seed/bunbo/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 9, CategoryId = 2, Name = "Bún chả Hà Nội", Price = 40000, Description = "Chả nướng than hoa, bún rối, nước chấm đu đủ xanh", ImageUrl = "https://picsum.photos/seed/buncha/400/300", IsAvailable = false, CreatedAt = seedDate },
-            new MenuItem { Id = 10, CategoryId = 2, Name = "Bún thịt nướng", Price = 35000, Description = "Thịt nướng sả, chả giò, đồ chua, đậu phộng rang", ImageUrl = "https://picsum.photos/seed/bunthitnuong/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 11, CategoryId = 3, Name = "Gà rán giòn (2 miếng)", Price = 35000, Description = "Da giòn rụm, ướp 12 loại gia vị, kèm tương ớt", ImageUrl = "https://picsum.photos/seed/garan/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 12, CategoryId = 3, Name = "Khoai tây chiên", Price = 20000, Description = "Khoai chiên hai lửa giòn lâu, rắc phô mai tùy chọn", ImageUrl = "https://picsum.photos/seed/khoaitay/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 13, CategoryId = 3, Name = "Bánh mì thịt nướng", Price = 25000, Description = "Bánh mì nóng, thịt nướng, pate, đồ chua, rau thơm", ImageUrl = "https://picsum.photos/seed/banhmi/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 14, CategoryId = 3, Name = "Nem rán (5 cái)", Price = 30000, Description = "Nem truyền thống nhân thịt mộc nhĩ, chấm mắm chua ngọt", ImageUrl = "https://picsum.photos/seed/nemran/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 15, CategoryId = 3, Name = "Xiên que thập cẩm", Price = 25000, Description = "Bò viên, cá viên, đậu bắp cuộn — 6 xiên nướng sốt me", ImageUrl = "https://picsum.photos/seed/xienque/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 16, CategoryId = 4, Name = "Trà đào cam sả", Price = 25000, Description = "Trà đen ủ lạnh, đào ngâm, cam vàng, sả tươi", ImageUrl = "https://picsum.photos/seed/tradao/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 17, CategoryId = 4, Name = "Cà phê sữa đá", Price = 20000, Description = "Cà phê phin robusta đậm, sữa đặc", ImageUrl = "https://picsum.photos/seed/caphe/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 18, CategoryId = 4, Name = "Nước cam ép", Price = 30000, Description = "Cam sành vắt nguyên chất, không đường tùy chọn", ImageUrl = "https://picsum.photos/seed/nuoccam/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 19, CategoryId = 4, Name = "Trà sữa trân châu", Price = 30000, Description = "Trân châu đường đen nấu mỗi 2 giờ, trà ô long", ImageUrl = "https://picsum.photos/seed/trasua/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 20, CategoryId = 4, Name = "Coca-Cola", Price = 15000, Description = "Lon 330ml ướp lạnh", ImageUrl = "https://picsum.photos/seed/coca/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 21, CategoryId = 5, Name = "Chè khúc bạch", Price = 25000, Description = "Khúc bạch phô mai, nhãn, hạnh nhân lát", ImageUrl = "https://picsum.photos/seed/chekhucbach/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 22, CategoryId = 5, Name = "Bánh flan", Price = 15000, Description = "Flan trứng sữa mềm mịn, caramel đắng nhẹ", ImageUrl = "https://picsum.photos/seed/banhflan/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 23, CategoryId = 5, Name = "Rau câu dừa", Price = 15000, Description = "Rau câu nước dừa tươi, lớp cốt dừa béo", ImageUrl = "https://picsum.photos/seed/raucau/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 24, CategoryId = 5, Name = "Sữa chua nếp cẩm", Price = 20000, Description = "Nếp cẩm dẻo thơm, sữa chua nhà làm", ImageUrl = "https://picsum.photos/seed/nepcam/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 25, CategoryId = 5, Name = "Kem dừa", Price = 30000, Description = "Kem dừa trong trái dừa tươi, đậu phộng, mứt", ImageUrl = "https://picsum.photos/seed/kemdua/400/300", IsAvailable = false, CreatedAt = seedDate },
-            new MenuItem { Id = 26, CategoryId = 6, Name = "Cơm chay thập cẩm", Price = 35000, Description = "Đậu hũ, nấm, rau củ kho, canh rong biển", ImageUrl = "https://picsum.photos/seed/comchay/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 27, CategoryId = 6, Name = "Bún riêu chay", Price = 35000, Description = "Riêu đậu hũ nấm, cà chua, đậu rán", ImageUrl = "https://picsum.photos/seed/bunrieuchay/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 28, CategoryId = 6, Name = "Đậu hũ sốt cà", Price = 25000, Description = "Đậu hũ non chiên sốt cà chua, hành lá", ImageUrl = "https://picsum.photos/seed/dauhusotca/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 29, CategoryId = 6, Name = "Gỏi cuốn chay (3 cuốn)", Price = 25000, Description = "Cuốn rau củ, bún, đậu hũ; chấm tương đậu phộng", ImageUrl = "https://picsum.photos/seed/goicuonchay/400/300", IsAvailable = true, CreatedAt = seedDate },
-            new MenuItem { Id = 30, CategoryId = 6, Name = "Nấm xào sả ớt", Price = 30000, Description = "Nấm bào ngư xào sả ớt cay nhẹ, ăn kèm cơm trắng", ImageUrl = "https://picsum.photos/seed/namxao/400/300", IsAvailable = true, CreatedAt = seedDate });
+        mb.Entity<Order>()
+          .HasOne(o => o.Voucher)
+          .WithMany()
+          .HasForeignKey(o => o.VoucherId)
+          .OnDelete(DeleteBehavior.Restrict);
 
-        mb.Entity<ReasonCatalog>().HasData(
-            new ReasonCatalog { Id = 1, Kind = ReasonKind.Reject, Text = "Hết nguyên liệu", DisplayOrder = 1, IsActive = true },
-            new ReasonCatalog { Id = 2, Kind = ReasonKind.Reject, Text = "Ngoài phạm vi giao", DisplayOrder = 2, IsActive = true },
-            new ReasonCatalog { Id = 3, Kind = ReasonKind.Reject, Text = "Quán quá tải", DisplayOrder = 3, IsActive = true },
-            new ReasonCatalog { Id = 4, Kind = ReasonKind.Reject, Text = "Nghi ngờ đơn ảo", DisplayOrder = 4, IsActive = true },
-            new ReasonCatalog { Id = 5, Kind = ReasonKind.Cancel, Text = "Đặt nhầm", DisplayOrder = 1, IsActive = true },
-            new ReasonCatalog { Id = 6, Kind = ReasonKind.Cancel, Text = "Đổi ý không đặt nữa", DisplayOrder = 2, IsActive = true },
-            new ReasonCatalog { Id = 7, Kind = ReasonKind.Cancel, Text = "Chờ quá lâu", DisplayOrder = 3, IsActive = true },
-            new ReasonCatalog { Id = 8, Kind = ReasonKind.DeliveryFailed, Text = "Khách không nghe máy", DisplayOrder = 1, IsActive = true },
-            new ReasonCatalog { Id = 9, Kind = ReasonKind.DeliveryFailed, Text = "Địa chỉ sai hoặc không tìm thấy", DisplayOrder = 2, IsActive = true },
-            new ReasonCatalog { Id = 10, Kind = ReasonKind.DeliveryFailed, Text = "Khách từ chối nhận hàng", DisplayOrder = 3, IsActive = true },
-            new ReasonCatalog { Id = 11, Kind = ReasonKind.NoShow, Text = "Khách không đến lấy", DisplayOrder = 1, IsActive = true },
-            new ReasonCatalog { Id = 12, Kind = ReasonKind.NoShow, Text = "Không liên lạc được với khách", DisplayOrder = 2, IsActive = true });
+        mb.Entity<OtpVerification>()
+          .HasIndex(o => new { o.Phone, o.Purpose, o.CreatedAt });
+
+        mb.Entity<Promotion>()
+          .HasIndex(p => p.Code)
+          .IsUnique();
+
+        mb.Entity<PromotionUsage>()
+          .HasOne(u => u.Promotion)
+          .WithMany(p => p.Usages)
+          .HasForeignKey(u => u.PromotionId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<PromotionUsage>()
+          .HasIndex(u => new { u.PromotionId, u.Phone });
+
+        mb.Entity<PromotionUsage>()
+          .HasIndex(u => u.OrderId);
+
+        mb.Entity<Voucher>()
+          .HasIndex(v => v.Code)
+          .IsUnique();
+
+        mb.Entity<Voucher>()
+          .HasOne(v => v.Customer)
+          .WithMany(c => c.Vouchers)
+          .HasForeignKey(v => v.CustomerId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<PointLedger>()
+          .HasOne(p => p.Customer)
+          .WithMany(c => c.PointEntries)
+          .HasForeignKey(p => p.CustomerId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<PointLedger>()
+          .HasIndex(p => new { p.CustomerId, p.CreatedAt });
+
+        mb.Entity<Complaint>()
+          .HasOne(c => c.Order)
+          .WithMany()
+          .HasForeignKey(c => c.OrderId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<Complaint>()
+          .HasIndex(c => c.OrderId)
+          .IsUnique();
+
+        mb.Entity<Complaint>()
+          .HasIndex(c => c.Status);
+
+        mb.Entity<InternalRating>()
+          .HasOne(r => r.Order)
+          .WithMany()
+          .HasForeignKey(r => r.OrderId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<InternalRating>()
+          .HasIndex(r => r.OrderId)
+          .IsUnique();
     }
 }

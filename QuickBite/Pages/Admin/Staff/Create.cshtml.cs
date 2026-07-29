@@ -40,6 +40,9 @@ public class CreateModel : PageModel
         public string ConfirmPassword { get; set; } = string.Empty;
 
         public AccountRole Role { get; set; } = AccountRole.Staff;
+
+        [Range(0, 1_000_000, ErrorMessage = "Đơn giá phải từ 0 đến 1.000.000đ/giờ.")]
+        public decimal HourlyRate { get; set; } = 25_000m;
     }
 
     [BindProperty]
@@ -72,6 +75,7 @@ public class CreateModel : PageModel
             Username = username,
             FullName = string.IsNullOrWhiteSpace(Input.FullName) ? null : Input.FullName.Trim(),
             Role = Enum.IsDefined(Input.Role) ? Input.Role : AccountRole.Staff,
+            HourlyRate = Input.HourlyRate,
             IsActive = true
         };
 

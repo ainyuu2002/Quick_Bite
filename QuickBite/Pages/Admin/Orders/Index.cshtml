@@ -454,7 +454,7 @@
                                                 </form>
                                             }
                                         }
-                                        @if ((User.IsInRole(nameof(AccountRole.Admin)) || User.IsInRole(nameof(AccountRole.Manager)))
+                                        @if (User.IsInRole(nameof(AccountRole.Manager))
                                             && order.Status is OrderStatus.Confirmed or OrderStatus.Preparing or OrderStatus.Ready)
                                         {
                                             <details class="exception-disclosure">

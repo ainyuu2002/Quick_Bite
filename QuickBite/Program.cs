@@ -4,7 +4,12 @@ using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Services;
 using QuickBite.Services.Events;
-using QuickBite.Models;
+using QuickBite.Modules.Operations.Authorization;
+using QuickBite.Modules.Operations.Ingredients;
+using QuickBite.Modules.Operations.MenuAvailability;
+using QuickBite.Modules.Operations.Reports;
+using QuickBite.Modules.Operations.Store;
+using QuickBite.Modules.Operations.Workforce;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,41 +20,56 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder("/Admin");
-    options.Conventions.AuthorizeFolder("/Staff");
     options.Conventions.AllowAnonymousToPage("/Admin/Login");
-    options.Conventions.AuthorizeFolder("/Admin/MenuItems", "AdminOnly");
-    options.Conventions.AuthorizeFolder("/Admin/Staff", "AdminOnly");
-    options.Conventions.AuthorizeFolder("/Admin/Reports", "AdminOnly");
-    options.Conventions.AuthorizeFolder("/Admin/Blacklist", "AdminOnly");
-    options.Conventions.AuthorizeFolder("/Admin/Orders", "StaffAccess");
-    options.Conventions.AuthorizeFolder("/Admin/Kitchen", "KitchenAccess");
-    options.Conventions.AuthorizeFolder("/Admin/Shipper", "ShipperAccess");
+    options.Conventions.AuthorizeFolder("/Admin/Orders", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder("/Staff", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder("/Admin/Operations", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder("/Admin/Kitchen", InternalPolicies.OperateKitchen);
+    options.Conventions.AuthorizeFolder("/Admin/Shipper", InternalPolicies.DeliverOrders);
+    options.Conventions.AuthorizeFolder(
+        "/Admin/Ingredients",
+        InternalPolicies.OperateKitchen);
+    options.Conventions.AuthorizePage(
+        "/Admin/Operations/MenuAvailability",
+        InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/MenuItems", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Staff", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Reports", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Promotions", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Blacklist", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Complaints", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder("/Account", CustomerAuth.Policy);
+    options.Conventions.AllowAnonymousToPage("/Account/Login");
+    options.Conventions.AllowAnonymousToPage("/Account/Register");
 });
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole(nameof(AccountRole.Admin), nameof(AccountRole.Manager)));
-    options.AddPolicy("StaffAccess", policy =>
-        policy.RequireRole(
-            nameof(AccountRole.Admin),
-            nameof(AccountRole.Manager),
-            nameof(AccountRole.Staff)));
-    options.AddPolicy("KitchenAccess", policy =>
-        policy.RequireRole(
-            nameof(AccountRole.Admin),
-            nameof(AccountRole.Manager),
-            nameof(AccountRole.Kitchen)));
-    options.AddPolicy("ShipperAccess", policy =>
-        policy.RequireRole(
-            nameof(AccountRole.Admin),
-            nameof(AccountRole.Manager),
-            nameof(AccountRole.Shipper)));
+    options.AddPolicy(InternalPolicies.ManagerOnly, policy =>
+        policy.RequireRole(InternalRoles.Manager));
+    options.AddPolicy(InternalPolicies.ReceiveOrders, policy =>
+        policy.RequireRole(InternalRoles.Manager, InternalRoles.Staff));
+    options.AddPolicy(InternalPolicies.OperateKitchen, policy =>
+        policy.RequireRole(InternalRoles.Manager, InternalRoles.Kitchen));
+    options.AddPolicy(InternalPolicies.DeliverOrders, policy =>
+        policy.RequireRole(InternalRoles.Manager, InternalRoles.Shipper));
+    options.AddPolicy(CustomerAuth.Policy, policy => policy
+        .AddAuthenticationSchemes(CustomerAuth.Scheme)
+        .RequireAuthenticatedUser());
 });
 builder.Services.AddSingleton<ConnectionTracker>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<WorkSessionService>();
-builder.Services.AddScoped<IDiscountService, NoDiscountService>();
-builder.Services.AddScoped<ICustomerInfoService, DefaultCustomerInfoService>();
+builder.Services.AddScoped<IStoreAvailabilityService, StoreAvailabilityService>();
+builder.Services.AddScoped<IMenuAvailabilityService, MenuAvailabilityService>();
+builder.Services.AddScoped<IWorkSessionApprovalService, WorkSessionApprovalService>();
+builder.Services.AddScoped<IIngredientService, IngredientService>();
+builder.Services.AddScoped<IMenuPerformanceService, MenuPerformanceService>();
+builder.Services.AddScoped<CustomerAccountService>();
+builder.Services.AddScoped<OtpService>();
+builder.Services.AddScoped<LoyaltyService>();
+builder.Services.AddScoped<ComplaintService>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
+builder.Services.AddScoped<IOrderEvents, RetentionOrderEvents>();
 builder.Services.AddScoped<IOrderEventPublisher, OrderEventPublisher>();
 builder.Services.Configure<OrderingOptions>(
     builder.Configuration.GetSection(OrderingOptions.SectionName));
@@ -67,6 +87,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.LoginPath = "/Admin/Login";
         options.AccessDeniedPath = "/Admin/AccessDenied";
+    })
+    .AddCookie(CustomerAuth.Scheme, options =>
+    {
+        options.Cookie.Name = "QuickBite.Customer";
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/Login";
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
     });
 
 var app = builder.Build();

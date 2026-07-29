@@ -1,0 +1,17 @@
+@model QuickBite.Modules.Operations.Ingredients.Ingredient
+@using QuickBite.Modules.Operations.Ingredients
+
+<div class="ingredient-status-actions">
+    @foreach (var status in Enum.GetValues<IngredientStatus>())
+    {
+        <form method="post" asp-page="/Admin/Ingredients/Index" asp-page-handler="SetStatus">
+            <input type="hidden" name="ingredientId" value="@Model.Id" />
+            <input type="hidden" name="status" value="@((int)status)" />
+            <button type="submit"
+                    class="btn btn--secondary btn--sm"
+                    disabled="@(Model.Status == status)">
+                @status.ToDisplayText()
+            </button>
+        </form>
+    }
+</div>

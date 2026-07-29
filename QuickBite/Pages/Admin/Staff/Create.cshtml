@@ -44,7 +44,7 @@
 
             <div class="field field--wide">
                 <label asp-for="Input.Role" class="label">Vai trò</label>
-                @* Không dùng Html.GetEnumSelectList: nó hiện tên enum tiếng Anh (Admin/Staff).
+                @* Không dùng Html.GetEnumSelectList: nó hiện tên enum tiếng Anh.
                    Liệt kê tay để dùng ToDisplayText() — cùng nguồn chữ với chỗ khác trong app. *@
                 <select asp-for="Input.Role" class="select">
                     @foreach (var role in Enum.GetValues<AccountRole>())
@@ -53,9 +53,17 @@
                     }
                 </select>
                 <p class="field-hint">
-                    Nhân viên: chỉ xử lý đơn hàng. Chủ quán: thêm quyền quản lý món ăn và tài khoản.
+                    Mỗi vai trò chỉ được truy cập đúng màn hình nghiệp vụ của mình.
                 </p>
                 <span asp-validation-for="Input.Role" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.HourlyRate" class="label">Đơn giá mỗi giờ</label>
+                <input asp-for="Input.HourlyRate" type="number" min="0" max="1000000"
+                       step="1000" class="input" />
+                <p class="field-hint">Đơn giá này được chụp lại khi duyệt từng ca.</p>
+                <span asp-validation-for="Input.HourlyRate" class="field-error"></span>
             </div>
 
             <div class="form-actions">

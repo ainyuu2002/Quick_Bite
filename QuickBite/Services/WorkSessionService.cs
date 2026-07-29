@@ -25,7 +25,9 @@ public sealed class WorkSessionService
         var now = DateTime.Now;
 
         var recentSession = await _db.WorkSessions
-            .Where(w => w.AccountId == accountId && w.CheckOutAt != null)
+            .Where(w => w.AccountId == accountId
+                && w.CheckOutAt != null
+                && w.ApprovalStatus == WorkSessionApprovalStatus.Draft)
             .OrderByDescending(w => w.CheckOutAt)
             .FirstOrDefaultAsync(cancellationToken);
 

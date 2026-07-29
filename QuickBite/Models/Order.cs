@@ -28,9 +28,11 @@ public class Order
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+    /// <summary>Tổng tiền chốt tại thời điểm đặt (BR-03) = Σ UnitPrice × Quantity − DiscountAmount + DeliveryFee.</summary>
     [Column(TypeName = "decimal(18,0)")]
     public decimal Total { get; set; }
 
+    // --- Order Core (giữ) ---
     [Column(TypeName = "decimal(18,0)")]
     public decimal DeliveryFee { get; set; }
 
@@ -40,6 +42,22 @@ public class Order
     [Required]
     [StringLength(20)]
     public string OrderCode { get; set; } = null!;
+
+    // --- Khuyến mãi / khách hàng (thêm từ dev) ---
+    [Column(TypeName = "decimal(18,0)")]
+    public decimal DiscountAmount { get; set; }
+
+    public int? CustomerId { get; set; }
+
+    public Customer? Customer { get; set; }
+
+    public int? PromotionId { get; set; }
+
+    public Promotion? Promotion { get; set; }
+
+    public int? VoucherId { get; set; }
+
+    public Voucher? Voucher { get; set; }
 
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
 

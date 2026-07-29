@@ -20,7 +20,10 @@ public sealed record CreateOrderRequest(
     PaymentMethod PaymentMethod,
     bool IsParty,
     DateTime? ScheduledFor,
-    IReadOnlyCollection<CreateOrderItem> Items);
+    IReadOnlyCollection<CreateOrderItem> Items,
+    int? CustomerId = null,
+    string? PromotionCode = null,
+    string? VoucherCode = null);
 
 public sealed class OrderValidationException : Exception
 {
@@ -34,18 +37,24 @@ public sealed class OrderService
     private const int MaximumQuantityPerItem = 10;
     private readonly AppDbContext _db;
     private readonly IHubContext<OrderHub> _hub;
+    private readonly IDiscountService _discounts;
     private readonly IOrderEventPublisher _events;
+    private readonly IOrderEvents _retention;
     private readonly OrderingOptions _options;
 
     public OrderService(
         AppDbContext db,
         IHubContext<OrderHub> hub,
+        IDiscountService discounts,
         IOrderEventPublisher events,
+        IOrderEvents retention,
         IOptions<OrderingOptions> options)
     {
         _db = db;
         _hub = hub;
+        _discounts = discounts;
         _events = events;
+        _retention = retention;
         _options = options.Value;
     }
 
@@ -201,9 +210,24 @@ public sealed class OrderService
             });
         }
 
-        order.Total = subtotal + deliveryFee;
+        var itemsTotal = order.Items.Sum(item => item.LineTotal);
+        var quote = await _discounts.QuoteAsync(
+            order.Phone,
+            request.CustomerId,
+            itemsTotal,
+            request.PromotionCode,
+            request.VoucherCode,
+            cancellationToken);
+
+        order.CustomerId = request.CustomerId;
+        order.PromotionId = quote.Promotion?.Id;
+        order.VoucherId = quote.Voucher?.Id;
+        order.DiscountAmount = quote.DiscountAmount;
+        // Công thức hợp nhất: tiền món − giảm giá + phí giao (BR-03).
+        order.Total = itemsTotal - quote.DiscountAmount + deliveryFee;
         _db.Orders.Add(order);
         await _db.SaveChangesAsync(cancellationToken);
+        await _discounts.CommitAsync(order, quote, cancellationToken);
 
         await _hub.Clients.Group("staff").SendAsync("NewOrder", new
         {
@@ -228,6 +252,21 @@ public sealed class OrderService
             .Include(order => order.Items)
             .ThenInclude(item => item.MenuItem)
             .SingleOrDefaultAsync(order => order.Id == orderId, cancellationToken);
+
+    public async Task<IReadOnlyList<Order>> GetOrdersByPhoneAsync(
+        string phone,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedPhone = phone.Trim();
+        return await _db.Orders
+            .AsNoTracking()
+            .Include(order => order.Items)
+            .ThenInclude(item => item.MenuItem)
+            .Where(order => order.Phone == normalizedPhone)
+            .OrderByDescending(order => order.CreatedAt)
+            .ThenByDescending(order => order.Id)
+            .ToListAsync(cancellationToken);
+    }
 
     public Task<Order?> GetByCodeAsync(string orderCode, CancellationToken cancellationToken = default)
     {
@@ -262,6 +301,7 @@ public sealed class OrderService
 
         await _db.SaveChangesAsync(cancellationToken);
 
+        await _retention.OrderCancelledAsync(order, cancellationToken);
         await NotifyStatusChangedAsync(order, cancellationToken);
         await _events.PublishAsync(new OrderCancelled(order.Id, trimmedReason), cancellationToken);
 
@@ -359,6 +399,15 @@ public sealed class OrderService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        if (nextStatus == OrderStatus.Completed)
+        {
+            await _retention.OrderCompletedAsync(order, cancellationToken);
+        }
+        else if (nextStatus == OrderStatus.Cancelled)
+        {
+            await _retention.OrderCancelledAsync(order, cancellationToken);
+        }
 
         await NotifyStatusChangedAsync(order, cancellationToken);
         await PublishStatusEventAsync(order, trimmedReason, cancellationToken);

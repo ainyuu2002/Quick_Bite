@@ -20,7 +20,7 @@ namespace QuickBite.Hubs
         [Authorize]
         public async Task JoinStaff()
         {
-            if (!InAnyRole(AccountRole.Admin, AccountRole.Manager, AccountRole.Staff))
+            if (!InAnyRole(AccountRole.Manager, AccountRole.Staff))
             {
                 return;
             }
@@ -46,13 +46,13 @@ namespace QuickBite.Hubs
 
         [Authorize]
         public Task JoinKitchen()
-            => InAnyRole(AccountRole.Admin, AccountRole.Manager, AccountRole.Kitchen)
+            => InAnyRole(AccountRole.Manager, AccountRole.Kitchen)
                 ? Groups.AddToGroupAsync(Context.ConnectionId, "kitchen")
                 : Task.CompletedTask;
 
         [Authorize]
         public Task JoinShipper()
-            => InAnyRole(AccountRole.Admin, AccountRole.Manager, AccountRole.Shipper)
+            => InAnyRole(AccountRole.Manager, AccountRole.Shipper)
                 ? Groups.AddToGroupAsync(Context.ConnectionId, "shipper")
                 : Task.CompletedTask;
 

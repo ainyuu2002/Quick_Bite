@@ -36,6 +36,7 @@
                 <th>Tên đăng nhập</th>
                 <th>Họ tên</th>
                 <th>Vai trò</th>
+                <th>Đơn giá/giờ</th>
                 <th class="num">Đơn đã nhận</th>
                 <th>Trạng thái</th>
                 <th></th>
@@ -56,6 +57,18 @@
                     </td>
                     <td>@(account.FullName ?? "—")</td>
                     <td>@account.Role.ToDisplayText()</td>
+                    <td>
+                        <form method="post" asp-page-handler="UpdateHourlyRate"
+                              class="rate-form">
+                            <input type="hidden" name="id" value="@account.Id" />
+                            <input type="number" name="hourlyRate"
+                                   value="@account.HourlyRate.ToString("0", System.Globalization.CultureInfo.InvariantCulture)"
+                                   min="0" max="1000000" step="1000"
+                                   class="input rate-form__input"
+                                   aria-label="Đơn giá mỗi giờ của @account.Username" />
+                            <button type="submit" class="btn btn--secondary btn--sm">Lưu</button>
+                        </form>
+                    </td>
                     <td class="num">@row.AcceptedOrderCount</td>
                     <td>
                         @if (account.IsActive)
