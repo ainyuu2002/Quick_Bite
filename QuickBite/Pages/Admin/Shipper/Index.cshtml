@@ -1,0 +1,137 @@
+@page
+@model QuickBite.Pages.Admin.Shipper.IndexModel
+@using QuickBite.Models
+@{
+    ViewData["Title"] = "Shipper";
+    var lanes = new[]
+    {
+        new
+        {
+            Id = "shipper-ready",
+            Title = "Chờ nhận giao",
+            Description = "Đơn đã sẵn sàng tại quán.",
+            Orders = Model.Board.Where(order => order.Status == OrderStatus.Ready).ToList()
+        },
+        new
+        {
+            Id = "shipper-delivering",
+            Title = "Đang giao",
+            Description = "Đơn đang trên đường đến khách.",
+            Orders = Model.Board.Where(order => order.Status == OrderStatus.Delivering).ToList()
+        }
+    };
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Đơn giao</h1>
+        <p class="page-description">Nhận đơn sẵn sàng, xem nhanh điểm giao và cập nhật kết quả.</p>
+    </div>
+    <div class="workboard-summary" aria-label="Tổng quan giao hàng">
+        <strong>@Model.Board.Count</strong>
+        <span>đơn cần theo dõi</span>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert--danger" role="alert">@errorMessage</div>
+}
+
+<div class="role-board role-board--lanes" data-role-board="shipper">
+    @if (Model.Board.Count == 0)
+    {
+        <section class="empty-state empty-state--workboard">
+            <span class="empty-state__mark" aria-hidden="true">0</span>
+            <h2>Chưa có chuyến giao nào</h2>
+            <p>Đơn bếp hoàn tất sẽ tự động xuất hiện ở cột “Chờ nhận giao”.</p>
+        </section>
+    }
+    else
+    {
+        @foreach (var lane in lanes)
+        {
+            <section class="workboard-lane" aria-labelledby="@lane.Id">
+                <header class="workboard-lane__header">
+                    <div>
+                        <h2 id="@lane.Id">@lane.Title</h2>
+                        <p>@lane.Description</p>
+                    </div>
+                    <span class="badge badge--muted">@lane.Orders.Count đơn</span>
+                </header>
+                <div class="workboard-lane__tickets">
+                    @if (lane.Orders.Count == 0)
+                    {
+                        <p class="lane-empty">Chưa có đơn trong bước này.</p>
+                    }
+                    @foreach (var order in lane.Orders)
+                    {
+                        <article class="ticket">
+                            <header class="ticket__head">
+                                <span class="order-id">#@order.Id</span>
+                                <span class="badge badge--muted">@order.Status.ToDisplayText()</span>
+                            </header>
+                            <div class="ticket__address">
+                                <span>Điểm giao</span>
+                                <strong>@(string.IsNullOrWhiteSpace(order.Address) ? "Chưa có địa chỉ" : order.Address)</strong>
+                            </div>
+                            <dl class="ticket__meta">
+                                <div><dt>Khách</dt><dd>@order.CustomerName</dd></div>
+                                <div><dt>SĐT</dt><dd><a href="tel:@order.Phone">@order.Phone</a></dd></div>
+                                <div><dt>Thu hộ</dt><dd>@order.Total.ToString("N0") đ</dd></div>
+                            </dl>
+                            <div class="ticket__actions">
+                                @if (order.Status == OrderStatus.Ready)
+                                {
+                                    <form method="post" asp-page-handler="Advance">
+                                        <input type="hidden" name="orderId" value="@order.Id" />
+                                        <input type="hidden" name="nextStatus" value="@OrderStatus.Delivering" />
+                                        <button class="btn btn--primary" type="submit">Nhận giao đơn này</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-page-handler="Advance">
+                                        <input type="hidden" name="orderId" value="@order.Id" />
+                                        <input type="hidden" name="nextStatus" value="@OrderStatus.Completed" />
+                                        <button class="btn btn--primary" type="submit">Xác nhận giao thành công</button>
+                                    </form>
+                                    <details class="exception-disclosure exception-disclosure--ticket">
+                                        <summary>Không giao được?</summary>
+                                        <form method="post" asp-page-handler="Advance" class="ticket__fail exception-disclosure__content" data-reason-group>
+                                            <input type="hidden" name="orderId" value="@order.Id" />
+                                            <input type="hidden" name="nextStatus" value="@OrderStatus.DeliveryFailed" />
+                                            <label class="reason-label">
+                                                Lý do giao thất bại
+                                                <select name="reason" class="input" required data-reason-select>
+                                                    <option value="">— Chọn lý do —</option>
+                                                    @foreach (var reason in Model.FailReasons)
+                                                    {
+                                                        <option value="@reason.Text">@reason.Text</option>
+                                                    }
+                                                    <option value="__other__">Khác…</option>
+                                                </select>
+                                            </label>
+                                            <input type="text" name="reasonOther" class="input" aria-label="Lý do khác" placeholder="Nhập lý do" data-reason-other hidden />
+                                            <button class="btn btn--danger" type="submit">Xác nhận giao thất bại</button>
+                                        </form>
+                                    </details>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/reason-other.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/role-board.js" asp-append-version="true"></script>
+}

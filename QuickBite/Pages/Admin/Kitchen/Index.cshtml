@@ -1,0 +1,112 @@
+@page
+@model QuickBite.Pages.Admin.Kitchen.IndexModel
+@using QuickBite.Models
+@{
+    ViewData["Title"] = "Bếp";
+    var lanes = new[]
+    {
+        new
+        {
+            Id = "kitchen-waiting",
+            Title = "Chờ bắt đầu",
+            Description = "Đơn đã xác nhận, đang chờ bếp nhận.",
+            Orders = Model.Queue.Where(order => order.Status == OrderStatus.Confirmed).ToList()
+        },
+        new
+        {
+            Id = "kitchen-preparing",
+            Title = "Đang chuẩn bị",
+            Description = "Đơn đang được chế biến, ưu tiên hoàn tất trước.",
+            Orders = Model.Queue.Where(order => order.Status == OrderStatus.Preparing).ToList()
+        }
+    };
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Hàng đợi bếp</h1>
+        <p class="page-description">Tập trung vào món cần làm ngay, từ lúc nhận đơn đến khi sẵn sàng.</p>
+    </div>
+    <div class="workboard-summary" aria-label="Tổng quan hàng đợi">
+        <strong>@Model.Queue.Count</strong>
+        <span>đơn đang chờ bếp</span>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert--danger" role="alert">@errorMessage</div>
+}
+
+<div class="role-board role-board--lanes" data-role-board="kitchen">
+    @if (Model.Queue.Count == 0)
+    {
+        <section class="empty-state empty-state--workboard">
+            <span class="empty-state__mark" aria-hidden="true">0</span>
+            <h2>Bếp đã xử lý hết hàng đợi</h2>
+            <p>Đơn được xác nhận sẽ tự động xuất hiện ở cột “Chờ bắt đầu”.</p>
+        </section>
+    }
+    else
+    {
+        @foreach (var lane in lanes)
+        {
+            <section class="workboard-lane" aria-labelledby="@lane.Id">
+                <header class="workboard-lane__header">
+                    <div>
+                        <h2 id="@lane.Id">@lane.Title</h2>
+                        <p>@lane.Description</p>
+                    </div>
+                    <span class="badge badge--muted">@lane.Orders.Count đơn</span>
+                </header>
+                <div class="workboard-lane__tickets">
+                    @if (lane.Orders.Count == 0)
+                    {
+                        <p class="lane-empty">Chưa có đơn trong bước này.</p>
+                    }
+                    @foreach (var order in lane.Orders)
+                    {
+                        <article class="ticket">
+                            <header class="ticket__head">
+                                <span class="order-id">#@order.Id</span>
+                                <span class="badge badge--muted">@order.Status.ToDisplayText()</span>
+                            </header>
+                            <ul class="ticket__items">
+                                @foreach (var item in order.Items)
+                                {
+                                    <li><strong>@item.Quantity×</strong> @(item.MenuItem?.Name ?? $"Món #{item.MenuItemId}")</li>
+                                }
+                            </ul>
+                            @if (!string.IsNullOrWhiteSpace(order.Note))
+                            {
+                                <p class="ticket__note"><strong>Ghi chú bếp:</strong> @order.Note</p>
+                            }
+                            <form method="post" asp-page-handler="Advance" class="ticket__action">
+                                <input type="hidden" name="orderId" value="@order.Id" />
+                                @if (order.Status == OrderStatus.Confirmed)
+                                {
+                                    <input type="hidden" name="nextStatus" value="@OrderStatus.Preparing" />
+                                    <button class="btn btn--primary" type="submit">Bắt đầu nấu</button>
+                                }
+                                else
+                                {
+                                    <input type="hidden" name="nextStatus" value="@OrderStatus.Ready" />
+                                    <button class="btn btn--primary" type="submit">Đánh dấu đã xong</button>
+                                }
+                            </form>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/role-board.js" asp-append-version="true"></script>
+}

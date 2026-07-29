@@ -29,11 +29,33 @@ namespace QuickBite.Pages.Admin
         [Required(ErrorMessage = "Vui lòng nhập mật khẩu")]
         public string Password { get; set; } = string.Empty;
 
+        private static string LandingPageForRole(AccountRole role) => role switch
+        {
+            AccountRole.Kitchen => "/Admin/Kitchen/Index",
+            AccountRole.Shipper => "/Admin/Shipper/Index",
+            _ => "/Admin/Orders/Index"
+        };
+
+        private static bool TryGetInternalRole(AccountRole role, out string internalRole)
+        {
+            internalRole = role switch
+            {
+                AccountRole.Manager => InternalRoles.Manager,
+                AccountRole.Staff => InternalRoles.Staff,
+                AccountRole.Kitchen => InternalRoles.Kitchen,
+                AccountRole.Shipper => InternalRoles.Shipper,
+                _ => string.Empty
+            };
+            return internalRole.Length > 0;
+        }
+
         public IActionResult OnGet()
         {
-            if(User.Identity?.IsAuthenticated == true)
+            if (User.Identity?.IsAuthenticated == true)
             {
-                return RedirectToPage("/Admin/Orders/Index");
+                var roleName = User.FindFirstValue(ClaimTypes.Role);
+                var role = Enum.TryParse<AccountRole>(roleName, out var parsed) ? parsed : AccountRole.Staff;
+                return RedirectToPage(LandingPageForRole(role));
             }
             return Page();
         }
@@ -67,24 +89,25 @@ namespace QuickBite.Pages.Admin
                 return Page();
             }
 
+            if (!TryGetInternalRole(user.Role, out var internalRole))
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Vai trò tài khoản không hợp lệ. Vui lòng liên hệ người quản trị dữ liệu.");
+                return Page();
+            }
+
             var claims = new List<Claim>
             {
                 new (ClaimTypes.Name, user.Username),
                 new (ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new (ClaimTypes.Role, user.Role switch
-                {
-                    AccountRole.Manager => InternalRoles.Manager,
-                    AccountRole.Staff => InternalRoles.Staff,
-                    AccountRole.Kitchen => InternalRoles.Kitchen,
-                    AccountRole.Shipper => InternalRoles.Shipper,
-                    _ => throw new InvalidOperationException("Vai trò tài khoản không hợp lệ.")
-                })
+                new (ClaimTypes.Role, internalRole)
             };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-            return RedirectToPage("/Admin/Orders/Index");
+            return RedirectToPage(LandingPageForRole(user.Role));
         }
 
         public async Task<IActionResult> OnPostLogoutAsync()

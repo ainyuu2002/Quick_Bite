@@ -119,9 +119,11 @@ public sealed class MenuAvailabilityService : IMenuAvailabilityService
         var businessDate = DateOnly.FromDateTime(now);
         var currentTime = TimeOnly.FromDateTime(now);
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
+        await using var transaction = _db.Database.CurrentTransaction is null
+            ? await _db.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken)
+            : null;
 
         var ids = normalizedItems.Keys.ToArray();
         var menuItems = await _db.MenuItems
@@ -182,7 +184,10 @@ public sealed class MenuAvailabilityService : IMenuAvailabilityService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
         return QuotaReservationResult.Accepted();
     }
 
@@ -197,9 +202,11 @@ public sealed class MenuAvailabilityService : IMenuAvailabilityService
             return;
         }
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
+        await using var transaction = _db.Database.CurrentTransaction is null
+            ? await _db.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken)
+            : null;
 
         var ids = normalizedItems.Keys.ToArray();
         var quotas = await _db.DailyQuotas
@@ -216,7 +223,10 @@ public sealed class MenuAvailabilityService : IMenuAvailabilityService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
     }
 
     public async Task ConfigureAsync(

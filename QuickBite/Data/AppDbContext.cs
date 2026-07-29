@@ -16,6 +16,9 @@ public class AppDbContext : DbContext
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
+    public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
+    public DbSet<ReasonCatalog> ReasonCatalogs => Set<ReasonCatalog>();
+    public DbSet<PhoneBlacklist> PhoneBlacklists => Set<PhoneBlacklist>();
     public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
     public DbSet<DailyQuota> DailyQuotas => Set<DailyQuota>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
@@ -212,6 +215,23 @@ public class AppDbContext : DbContext
         mb.Entity<Order>()
           .Property(o => o.PaymentMethod)
           .HasDefaultValue(PaymentMethod.Cash);
+        mb.Entity<OrderStatusHistory>()
+          .HasOne(h => h.Order)
+          .WithMany()
+          .HasForeignKey(h => h.OrderId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        mb.Entity<OrderStatusHistory>()
+          .HasOne(h => h.ChangedByAccount)
+          .WithMany()
+          .HasForeignKey(h => h.ChangedByAccountId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        mb.Entity<OrderStatusHistory>().HasIndex(h => h.OrderId);
+
+        mb.Entity<Order>().HasIndex(o => o.OrderCode).IsUnique();
+        mb.Entity<PhoneBlacklist>().HasIndex(b => b.Phone).IsUnique();
+
         mb.Entity<Order>()
           .Property(o => o.DiscountAmount)
           .HasDefaultValue(0m);

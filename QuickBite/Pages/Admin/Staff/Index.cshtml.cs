@@ -16,7 +16,6 @@ public class IndexModel : PageModel
         _context = context;
     }
 
-    /// <summary>Một dòng trong bảng nhân viên — kèm số đơn người đó đã nhận.</summary>
     public sealed record StaffRow(Account Account, int AcceptedOrderCount);
 
     public IReadOnlyList<StaffRow> Rows { get; private set; } = Array.Empty<StaffRow>();
@@ -27,7 +26,6 @@ public class IndexModel : PageModel
     {
         CurrentAccountId = GetCurrentAccountId();
 
-        // Đếm đơn ngay trong truy vấn để không bị N+1 (mỗi dòng một lần gọi DB).
         Rows = await _context.Accounts
             .AsNoTracking()
             .OrderBy(a => a.Role)
@@ -51,7 +49,6 @@ public class IndexModel : PageModel
             return RedirectToPage();
         }
 
-        // Tự khoá mình = tự đá mình ra khỏi hệ thống ngay lần chuyển trang kế tiếp.
         if (account.Id == GetCurrentAccountId())
         {
             TempData["ErrorMessage"] = "Không thể tự khoá tài khoản của chính mình.";

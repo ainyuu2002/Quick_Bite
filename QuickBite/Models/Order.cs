@@ -16,21 +16,34 @@ public class Order
     [StringLength(11)]
     public string Phone { get; set; } = null!;
 
-    [Required(ErrorMessage = "Vui lòng nhập địa chỉ")]
     [StringLength(500)]
-    public string Address { get; set; } = null!;
+    public string? Address { get; set; }
 
     [StringLength(500)]
     public string? Note { get; set; }
+
+    public OrderType OrderType { get; set; } = OrderType.Delivery;
 
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    /// <summary>Tổng tiền chốt tại thời điểm đặt (BR-03) = Σ UnitPrice × Quantity − DiscountAmount.</summary>
+    /// <summary>Tổng tiền chốt tại thời điểm đặt (BR-03) = Σ UnitPrice × Quantity − DiscountAmount + DeliveryFee.</summary>
     [Column(TypeName = "decimal(18,0)")]
     public decimal Total { get; set; }
 
+    // --- Order Core (giữ) ---
+    [Column(TypeName = "decimal(18,0)")]
+    public decimal DeliveryFee { get; set; }
+
+    [NotMapped]
+    public decimal Subtotal => Total - DeliveryFee;
+
+    [Required]
+    [StringLength(20)]
+    public string OrderCode { get; set; } = null!;
+
+    // --- Khuyến mãi / khách hàng (thêm từ dev) ---
     [Column(TypeName = "decimal(18,0)")]
     public decimal DiscountAmount { get; set; }
 
@@ -48,10 +61,19 @@ public class Order
 
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
 
-    /// <summary>
-    /// Nhân viên đã bấm "Nhận đơn" (Pending → Accepted). Null = chưa ai nhận.
-    /// Chốt một lần, không đổi khi đơn đi tiếp các trạng thái sau.
-    /// </summary>
+    public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Unpaid;
+
+    public bool IsPartyOrder { get; set; }
+
+    public DateTime? ScheduledFor { get; set; }
+
+    [Column(TypeName = "decimal(18,0)")]
+    public decimal DepositAmount { get; set; }
+
+    public bool DepositPaid { get; set; }
+
+    public DateTime? ApprovedAt { get; set; }
+
     public int? AcceptedByAccountId { get; set; }
 
     public Account? AcceptedByAccount { get; set; }

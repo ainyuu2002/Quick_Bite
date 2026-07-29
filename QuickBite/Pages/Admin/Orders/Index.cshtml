@@ -23,6 +23,25 @@
 
     string? AriaSort(string column)
         => Model.SortBy != column ? null : (Model.SortDir == "asc" ? "ascending" : "descending");
+
+    var processingStatuses = new[]
+    {
+        OrderStatus.PendingReview,
+        OrderStatus.Pending,
+        OrderStatus.Confirmed,
+        OrderStatus.Preparing,
+        OrderStatus.Ready,
+        OrderStatus.Delivering
+    };
+    var completedStatuses = new[] { OrderStatus.Completed };
+    var exceptionStatuses = new[]
+    {
+        OrderStatus.Cancelled,
+        OrderStatus.Rejected,
+        OrderStatus.Expired,
+        OrderStatus.DeliveryFailed,
+        OrderStatus.NoShow
+    };
 }
 
 <div class="page-header">
@@ -42,19 +61,58 @@
     <div class="alert alert--danger" role="alert">@errorMessage</div>
 }
 
-<nav class="tabs" aria-label="Lọc theo trạng thái">
-    @foreach (var status in Enum.GetValues<OrderStatus>())
-    {
-        <a class="tab"
-           asp-route-status="@status"
-           asp-route-search="@Model.Search"
-           asp-route-sortBy="@Model.SortBy"
-           asp-route-sortDir="@Model.SortDir"
-           asp-route-pageNumber="1"
-           aria-current="@(status == Model.CurrentStatus ? "page" : null)">
-            @status.ToDisplayText()
-        </a>
-    }
+<nav class="status-groups" aria-label="Lọc đơn theo trạng thái">
+    <section class="status-group" aria-labelledby="processing-statuses">
+        <h2 class="status-group__label" id="processing-statuses">Đang xử lý</h2>
+        <div class="status-group__links">
+            @foreach (var status in processingStatuses)
+            {
+                <a class="tab"
+                   asp-route-status="@status"
+                   asp-route-search="@Model.Search"
+                   asp-route-sortBy="@Model.SortBy"
+                   asp-route-sortDir="@Model.SortDir"
+                   asp-route-pageNumber="1"
+                   aria-current="@(status == Model.CurrentStatus ? "page" : null)">
+                    @status.ToDisplayText()
+                </a>
+            }
+        </div>
+    </section>
+    <section class="status-group" aria-labelledby="completed-statuses">
+        <h2 class="status-group__label" id="completed-statuses">Hoàn thành</h2>
+        <div class="status-group__links">
+            @foreach (var status in completedStatuses)
+            {
+                <a class="tab"
+                   asp-route-status="@status"
+                   asp-route-search="@Model.Search"
+                   asp-route-sortBy="@Model.SortBy"
+                   asp-route-sortDir="@Model.SortDir"
+                   asp-route-pageNumber="1"
+                   aria-current="@(status == Model.CurrentStatus ? "page" : null)">
+                    @status.ToDisplayText()
+                </a>
+            }
+        </div>
+    </section>
+    <section class="status-group" aria-labelledby="exception-statuses">
+        <h2 class="status-group__label" id="exception-statuses">Ngoại lệ</h2>
+        <div class="status-group__links">
+            @foreach (var status in exceptionStatuses)
+            {
+                <a class="tab"
+                   asp-route-status="@status"
+                   asp-route-search="@Model.Search"
+                   asp-route-sortBy="@Model.SortBy"
+                   asp-route-sortDir="@Model.SortDir"
+                   asp-route-pageNumber="1"
+                   aria-current="@(status == Model.CurrentStatus ? "page" : null)">
+                    @status.ToDisplayText()
+                </a>
+            }
+        </div>
+    </section>
 </nav>
 
 <form method="get" asp-page="./Index" class="toolbar">
@@ -67,7 +125,7 @@
            placeholder="Tìm theo mã đơn, tên khách hoặc SĐT…"
            aria-label="Tìm đơn hàng"
            class="input" />
-    <button type="submit" class="btn btn--secondary btn--sm">Tìm</button>
+    <button type="submit" class="btn btn--secondary">Tìm đơn</button>
 </form>
 
 <p class="result-summary" role="status">
@@ -88,7 +146,7 @@
 
 @* Bảng luôn được render, kể cả khi rỗng: SignalR cần sẵn <tbody> để chèn đơn mới vào.
    Trạng thái rỗng là một hàng trong bảng, JS sẽ gỡ nó khi có đơn đầu tiên tới. *@
-<div class="data-surface">
+<div class="data-surface orders-surface @(!Model.Result.Items.Any() ? "orders-surface--empty" : null)">
     <table class="table">
         <thead>
             <tr>
@@ -108,16 +166,28 @@
         <tbody id="ordersTableBody" data-current-status="@((int)Model.CurrentStatus)">
             @if (!Model.Result.Items.Any())
             {
-                <tr id="emptyRow">
-                    <td colspan="7"><p class="empty-state">Không có đơn nào khớp điều kiện.</p></td>
+                <tr id="emptyRow" class="orders-empty-row">
+                    <td colspan="7">
+                        <section class="empty-state empty-state--orders" aria-labelledby="orders-empty-title">
+                            <span class="empty-state__mark" aria-hidden="true">0</span>
+                            <h2 id="orders-empty-title">Chưa có đơn @Model.CurrentStatus.ToDisplayText().ToLowerInvariant()</h2>
+                            <p>Đơn mới hoặc thay đổi trạng thái sẽ xuất hiện tại đây theo thời gian thực.</p>
+                        </section>
+                    </td>
                 </tr>
             }
             @foreach (var order in Model.Result.Items)
             {
                 <tr data-order-id="@order.Id">
-                    <td><span class="order-id">#@order.Id</span></td>
+                    <td><span class="order-id">@order.OrderCode</span></td>
                     <td>@order.CustomerName</td>
-                    <td>@order.Phone</td>
+                    <td>
+                        @order.Phone
+                        @if (Model.BlacklistedPhones.Contains(order.Phone))
+                        {
+                            <span class="badge badge--danger" title="Số điện thoại trong danh sách cảnh báo bùng hàng">⚠ SĐT cảnh báo</span>
+                        }
+                    </td>
                     <td class="num">@order.Total.ToString("N0") đ</td>
                     <td>
                         <time datetime="@order.CreatedAt.ToString("O")">
@@ -149,12 +219,56 @@
                             <div class="order-details__content">
                                 <dl class="order-meta">
                                     <div>
+                                        <dt>Hình thức</dt>
+                                        <dd>@order.OrderType.ToDisplayText()@(order.IsPartyOrder ? " · 🎉 Đặt tiệc" : "")</dd>
+                                    </div>
+                                    @if (order.IsPartyOrder)
+                                    {
+                                        <div>
+                                            <dt>Thông tin tiệc</dt>
+                                            <dd>
+                                                Nhận lúc: @(order.ScheduledFor?.ToString("HH:mm dd/MM/yyyy") ?? "—")<br />
+                                                Cọc @order.DepositAmount.ToString("N0") đ —
+                                                @(order.DepositPaid ? "đã cọc" : (order.ApprovedAt != null ? "đã duyệt, chờ cọc" : "chờ duyệt"))
+                                            </dd>
+                                        </div>
+                                    }
+                                    <div>
                                         <dt>Địa chỉ giao hàng</dt>
-                                        <dd>@order.Address</dd>
+                                        <dd>@(order.OrderType == OrderType.Pickup ? "Nhận tại quán" : (order.Address ?? "—"))</dd>
                                     </div>
                                     <div>
                                         <dt>Phương thức thanh toán</dt>
                                         <dd>@order.PaymentMethod.ToDisplayText()</dd>
+                                    </div>
+                                    @if (Model.StatusReasons.TryGetValue(order.Id, out var statusReason))
+                                    {
+                                        <div>
+                                            <dt>Lý do (hủy/từ chối/thất bại)</dt>
+                                            <dd>@statusReason</dd>
+                                        </div>
+                                    }
+                                    @if (order.Status is OrderStatus.Cancelled or OrderStatus.Rejected
+                                            or OrderStatus.Expired or OrderStatus.DeliveryFailed or OrderStatus.NoShow
+                                        && (order.PaymentStatus == PaymentStatus.Paid || order.DepositPaid))
+                                    {
+                                        <div>
+                                            <dt>Hoàn tiền</dt>
+                                            <dd><span class="badge badge--danger">⚠ Đã thu tiền/cọc — cần hoàn thủ công</span></dd>
+                                        </div>
+                                    }
+                                    <div>
+                                        <dt>Trạng thái thanh toán</dt>
+                                        <dd>
+                                            <span class="badge @(order.PaymentStatus == PaymentStatus.Paid ? "badge--muted" : "badge--danger")">
+                                                @order.PaymentStatus.ToDisplayText()
+                                            </span>
+                                            @if (order.PaymentStatus == PaymentStatus.Unpaid
+                                                && order.PaymentMethod == PaymentMethod.Cash)
+                                            {
+                                                <span class="muted">Tiền mặt — tự xác nhận khi đơn hoàn tất</span>
+                                            }
+                                        </dd>
                                     </div>
                                     <div>
                                         <dt>Ghi chú</dt>
@@ -185,6 +299,17 @@
                                         </tbody>
                                         <tfoot>
                                             <tr>
+                                                <td colspan="3" class="num">Tiền món</td>
+                                                <td class="num">@order.Subtotal.ToString("N0") đ</td>
+                                            </tr>
+                                            @if (order.DeliveryFee > 0)
+                                            {
+                                                <tr>
+                                                    <td colspan="3" class="num">Phí giao</td>
+                                                    <td class="num">@order.DeliveryFee.ToString("N0") đ</td>
+                                                </tr>
+                                            }
+                                            <tr>
                                                 <th colspan="3">Tổng cộng</th>
                                                 <th class="num">@order.Total.ToString("N0") đ</th>
                                             </tr>
@@ -192,43 +317,174 @@
                                     </table>
                                 </div>
 
+                                @if (order.Status == OrderStatus.Pending)
+                                {
+                                    <details class="contact-edit">
+                                        <summary>Sửa thông tin liên hệ</summary>
+                                        <form method="post" asp-page-handler="UpdateContact" class="contact-edit__form">
+                                            <input type="hidden" name="orderId" value="@order.Id" />
+                                            <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                            <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                            <label>Tên khách
+                                                <input class="input" name="customerName" value="@order.CustomerName" required />
+                                            </label>
+                                            <label>Số điện thoại
+                                                <input class="input" name="phone" value="@order.Phone" required />
+                                            </label>
+                                            @if (order.OrderType == OrderType.Delivery)
+                                            {
+                                                <label>Địa chỉ
+                                                    <input class="input" name="address" value="@order.Address" required />
+                                                </label>
+                                            }
+                                            <button class="btn btn--secondary btn--sm" type="submit">Lưu liên hệ</button>
+                                        </form>
+                                    </details>
+                                }
+
                                 <div class="order-actions">
-                                    @if (order.Status is >= OrderStatus.Pending and < OrderStatus.Completed)
+                                    @if (order.Status == OrderStatus.PendingReview && order.IsPartyOrder)
                                     {
-                                        var nextStatus = (OrderStatus)((int)order.Status + 1);
-                                        <form method="post" asp-page-handler="ChangeStatus">
-                                            <input type="hidden" name="orderId" value="@order.Id" />
-                                            <input type="hidden" name="nextStatus" value="@nextStatus" />
-                                            <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
-                                            <input type="hidden" name="search" value="@Model.Search" />
-                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
-                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
-                                            <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
-                                            <button class="btn btn--primary btn--sm" type="submit">
-                                                Chuyển sang @nextStatus.ToDisplayText()
-                                            </button>
-                                        </form>
+                                        @if (order.ApprovedAt is null)
+                                        {
+                                            <form method="post" asp-page-handler="ApproveParty" class="order-action-form">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                <button class="btn btn--primary" type="submit">Duyệt đơn tiệc</button>
+                                            </form>
+                                        }
+                                        else if (!order.DepositPaid)
+                                        {
+                                            <form method="post" asp-page-handler="RecordDeposit" class="order-action-form">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                <button class="btn btn--primary" type="submit">Đã nhận cọc (@order.DepositAmount.ToString("N0")đ)</button>
+                                            </form>
+                                        }
+                                        <details class="exception-disclosure">
+                                            <summary>Từ chối đơn tiệc</summary>
+                                            <form method="post" asp-page-handler="ChangeStatus" class="order-action-form exception-disclosure__content">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <input type="hidden" name="nextStatus" value="@OrderStatus.Rejected" />
+                                                <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                <span class="reason-group" data-reason-group>
+                                                    <label class="reason-label">
+                                                        Lý do từ chối
+                                                        <select name="reason" class="input" required data-reason-select>
+                                                            <option value="">— Chọn lý do —</option>
+                                                            @foreach (var reasonOption in Model.ReasonsFor(OrderStatus.Rejected))
+                                                            {
+                                                                <option value="@reasonOption.Text">@reasonOption.Text</option>
+                                                            }
+                                                            <option value="__other__">Khác…</option>
+                                                        </select>
+                                                    </label>
+                                                    <input type="text" name="reasonOther" class="input" aria-label="Lý do khác" placeholder="Nhập lý do" data-reason-other hidden />
+                                                </span>
+                                                <button class="btn btn--danger" type="submit">Xác nhận từ chối</button>
+                                            </form>
+                                        </details>
                                     }
-
-                                    @if (order.Status.CanBeCancelledByStaff())
+                                    else
                                     {
-                                        <form method="post" asp-page-handler="ChangeStatus">
-                                            <input type="hidden" name="orderId" value="@order.Id" />
-                                            <input type="hidden" name="nextStatus" value="@OrderStatus.Cancelled" />
-                                            <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
-                                            <input type="hidden" name="search" value="@Model.Search" />
-                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
-                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
-                                            <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
-                                            <button class="btn btn--danger-quiet btn--sm" type="submit">
-                                                Hủy đơn
-                                            </button>
-                                        </form>
-                                    }
-
-                                    @if (order.Status is OrderStatus.Completed or OrderStatus.Cancelled)
-                                    {
-                                        <span class="badge badge--muted">Đơn đã kết thúc</span>
+                                        var nextStatuses = QuickBite.Pages.Admin.Orders.IndexModel.AdminNextStatuses(order.Status, order.OrderType);
+                                        @if (order.Status.IsTerminal())
+                                        {
+                                            <span class="badge badge--muted">Đơn đã kết thúc</span>
+                                        }
+                                        @foreach (var next in nextStatuses)
+                                        {
+                                            var needsReason = next.RequiresReason();
+                                            @if (needsReason)
+                                            {
+                                                <details class="exception-disclosure">
+                                                    <summary>@next.ToDisplayText()</summary>
+                                                    <form method="post" asp-page-handler="ChangeStatus" class="order-action-form exception-disclosure__content">
+                                                        <input type="hidden" name="orderId" value="@order.Id" />
+                                                        <input type="hidden" name="nextStatus" value="@next" />
+                                                        <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                        <input type="hidden" name="search" value="@Model.Search" />
+                                                        <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                        <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                        <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                        <span class="reason-group" data-reason-group>
+                                                            <label class="reason-label">
+                                                                Lý do @next.ToDisplayText().ToLowerInvariant()
+                                                                <select name="reason" class="input" required data-reason-select>
+                                                                    <option value="">— Chọn lý do —</option>
+                                                                    @foreach (var reasonOption in Model.ReasonsFor(next))
+                                                                    {
+                                                                        <option value="@reasonOption.Text">@reasonOption.Text</option>
+                                                                    }
+                                                                    <option value="__other__">Khác…</option>
+                                                                </select>
+                                                            </label>
+                                                            <input type="text" name="reasonOther" class="input" aria-label="Lý do khác" placeholder="Nhập lý do" data-reason-other hidden />
+                                                        </span>
+                                                        <button class="btn btn--danger" type="submit">Xác nhận @next.ToDisplayText().ToLowerInvariant()</button>
+                                                    </form>
+                                                </details>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" asp-page-handler="ChangeStatus" class="order-action-form">
+                                                    <input type="hidden" name="orderId" value="@order.Id" />
+                                                    <input type="hidden" name="nextStatus" value="@next" />
+                                                    <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                    <input type="hidden" name="search" value="@Model.Search" />
+                                                    <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                    <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                    <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                    <button class="btn btn--primary" type="submit">@next.ToDisplayText()</button>
+                                                </form>
+                                            }
+                                        }
+                                        @if (User.IsInRole(nameof(AccountRole.Manager))
+                                            && order.Status is OrderStatus.Confirmed or OrderStatus.Preparing or OrderStatus.Ready)
+                                        {
+                                            <details class="exception-disclosure">
+                                                <summary>Hủy đơn do sự cố</summary>
+                                                <form method="post" asp-page-handler="ChangeStatus" class="order-action-form exception-disclosure__content">
+                                                    <input type="hidden" name="orderId" value="@order.Id" />
+                                                    <input type="hidden" name="nextStatus" value="@OrderStatus.Cancelled" />
+                                                    <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                    <input type="hidden" name="search" value="@Model.Search" />
+                                                    <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                    <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                    <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                    <span class="reason-group" data-reason-group>
+                                                        <label class="reason-label">
+                                                            Lý do hủy đơn
+                                                            <select name="reason" class="input" required data-reason-select>
+                                                                <option value="">— Chọn lý do —</option>
+                                                                @foreach (var reasonOption in Model.ReasonsFor(OrderStatus.Rejected))
+                                                                {
+                                                                    <option value="@reasonOption.Text">@reasonOption.Text</option>
+                                                                }
+                                                                <option value="__other__">Khác…</option>
+                                                            </select>
+                                                        </label>
+                                                        <input type="text" name="reasonOther" class="input" aria-label="Lý do khác" placeholder="Nhập lý do" data-reason-other hidden />
+                                                    </span>
+                                                    <button class="btn btn--danger" type="submit">Xác nhận hủy đơn</button>
+                                                </form>
+                                            </details>
+                                        }
                                     }
                                 </div>
                             </div>
@@ -270,6 +526,7 @@
 }
 
 @section Scripts {
+    <script src="~/js/reason-other.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="~/js/admin-orders.js" asp-append-version="true"></script>
 }

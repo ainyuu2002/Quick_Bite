@@ -45,10 +45,8 @@ public sealed class IndexModel : PageModel
         public int[] MenuItemIds { get; set; } = Array.Empty<int>();
     }
 
-    [BindProperty]
     public CreateInput Create { get; set; } = new();
 
-    [BindProperty]
     public LinkInput Links { get; set; } = new();
 
     public IReadOnlyList<Ingredient> Ingredients { get; private set; }
@@ -66,6 +64,7 @@ public sealed class IndexModel : PageModel
         => await LoadAsync(cancellationToken);
 
     public async Task<IActionResult> OnPostCreateAsync(
+        string ingredientName,
         CancellationToken cancellationToken = default)
     {
         if (!CanConfigure)
@@ -73,8 +72,20 @@ public sealed class IndexModel : PageModel
             return Forbid();
         }
 
-        ModelState.Remove($"{nameof(Links)}.{nameof(LinkInput.IngredientId)}");
-        ModelState.Remove($"{nameof(Links)}.{nameof(LinkInput.MenuItemIds)}");
+        Create.Name = ingredientName?.Trim() ?? string.Empty;
+        if (Create.Name.Length == 0)
+        {
+            ModelState.AddModelError(
+                nameof(ingredientName),
+                "Vui lòng nhập tên nguyên liệu.");
+        }
+        else if (Create.Name.Length > 120)
+        {
+            ModelState.AddModelError(
+                nameof(ingredientName),
+                "Tên nguyên liệu tối đa 120 ký tự.");
+        }
+
         if (!ModelState.IsValid)
         {
             await LoadAsync(cancellationToken);
@@ -90,6 +101,8 @@ public sealed class IndexModel : PageModel
     }
 
     public async Task<IActionResult> OnPostUpdateLinksAsync(
+        int ingredientId,
+        int[]? menuItemIds,
         CancellationToken cancellationToken = default)
     {
         if (!CanConfigure)
@@ -99,8 +112,8 @@ public sealed class IndexModel : PageModel
 
         return await ExecuteAsync(
             () => _ingredientService.UpdateDishLinksAsync(
-                Links.IngredientId,
-                Links.MenuItemIds,
+                ingredientId,
+                menuItemIds ?? Array.Empty<int>(),
                 GetCurrentAccountId(),
                 cancellationToken),
             "Đã cập nhật các món sử dụng nguyên liệu.");

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Services;
+using QuickBite.Services.Events;
 using QuickBite.Modules.Operations.Authorization;
 using QuickBite.Modules.Operations.Ingredients;
 using QuickBite.Modules.Operations.MenuAvailability;
@@ -23,6 +24,8 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Admin/Orders", InternalPolicies.ReceiveOrders);
     options.Conventions.AuthorizeFolder("/Staff", InternalPolicies.ReceiveOrders);
     options.Conventions.AuthorizeFolder("/Admin/Operations", InternalPolicies.ReceiveOrders);
+    options.Conventions.AuthorizeFolder("/Admin/Kitchen", InternalPolicies.OperateKitchen);
+    options.Conventions.AuthorizeFolder("/Admin/Shipper", InternalPolicies.DeliverOrders);
     options.Conventions.AuthorizeFolder(
         "/Admin/Ingredients",
         InternalPolicies.OperateKitchen);
@@ -33,6 +36,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Admin/Staff", InternalPolicies.ManagerOnly);
     options.Conventions.AuthorizeFolder("/Admin/Reports", InternalPolicies.ManagerOnly);
     options.Conventions.AuthorizeFolder("/Admin/Promotions", InternalPolicies.ManagerOnly);
+    options.Conventions.AuthorizeFolder("/Admin/Blacklist", InternalPolicies.ManagerOnly);
     options.Conventions.AuthorizeFolder("/Admin/Complaints", InternalPolicies.ReceiveOrders);
     options.Conventions.AuthorizeFolder("/Account", CustomerAuth.Policy);
     options.Conventions.AllowAnonymousToPage("/Account/Login");
@@ -66,6 +70,10 @@ builder.Services.AddScoped<LoyaltyService>();
 builder.Services.AddScoped<ComplaintService>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 builder.Services.AddScoped<IOrderEvents, RetentionOrderEvents>();
+builder.Services.AddScoped<IOrderEventPublisher, OrderEventPublisher>();
+builder.Services.Configure<OrderingOptions>(
+    builder.Configuration.GetSection(OrderingOptions.SectionName));
+builder.Services.AddHostedService<OrderExpiryService>();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -91,8 +99,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 var app = builder.Build();
 
-// Dọn ca làm còn treo từ lần chạy trước: nếu server tắt/restart khi đang có người
-// online, các WorkSession của họ vẫn CheckOutAt = null. Đóng hết trước khi nhận request.
 using (var scope = app.Services.CreateScope())
 {
     var workSessions = scope.ServiceProvider.GetRequiredService<WorkSessionService>();

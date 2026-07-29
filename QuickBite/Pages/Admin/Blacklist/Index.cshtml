@@ -1,0 +1,60 @@
+@page
+@model QuickBite.Pages.Admin.Blacklist.IndexModel
+@{
+    ViewData["Title"] = "SĐT cảnh báo";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Số điện thoại cảnh báo</h1>
+        <p class="page-description">Danh sách SĐT hay bùng hàng — Staff sẽ thấy cảnh báo khi các số này đặt đơn.</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert--success" role="status">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert--danger" role="alert">@errorMessage</div>
+}
+
+<form method="post" asp-page-handler="Add" class="toolbar">
+    <input type="text" name="phone" class="input" placeholder="Số điện thoại" required />
+    <input type="text" name="reason" class="input" placeholder="Lý do (tuỳ chọn)" />
+    <button type="submit" class="btn btn--primary btn--sm">Thêm vào danh sách</button>
+</form>
+
+<div class="data-surface">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Số điện thoại</th>
+                <th>Lý do</th>
+                <th>Thêm lúc</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Entries.Count == 0)
+            {
+                <tr><td colspan="4"><p class="empty-state">Chưa có số nào trong danh sách.</p></td></tr>
+            }
+            @foreach (var entry in Model.Entries)
+            {
+                <tr>
+                    <td>@entry.Phone</td>
+                    <td>@(string.IsNullOrWhiteSpace(entry.Reason) ? "—" : entry.Reason)</td>
+                    <td>@entry.CreatedAt.ToString("HH:mm dd/MM/yyyy")</td>
+                    <td>
+                        <form method="post" asp-page-handler="Remove">
+                            <input type="hidden" name="id" value="@entry.Id" />
+                            <button type="submit" class="btn btn--danger-quiet btn--sm">Gỡ</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

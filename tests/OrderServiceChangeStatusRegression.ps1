@@ -21,11 +21,11 @@ Assert-Match $service `
     'Enum\.IsDefined\(nextStatus\)' `
     "ChangeStatusAsync chưa từ chối giá trị enum giả."
 Assert-Match $service `
-    'CanTransitionTo\(nextStatus\)' `
+    'CanTransitionTo\(nextStatus,\s*order\.OrderType\)' `
     "ChangeStatusAsync chưa tái sử dụng máy trạng thái BR-01."
 Assert-Match $service `
-    'CanBeCancelledByStaff\(\)' `
-    "ChangeStatusAsync chưa áp dụng chính sách hủy của admin."
+    'nextStatus\.RequiresReason\(\)' `
+    "ChangeStatusAsync chưa kiểm tra lý do bắt buộc cho trạng thái ngoại lệ."
 Assert-Match $service `
     'SaveChangesAsync\(cancellationToken\)' `
     "ChangeStatusAsync chưa lưu thay đổi qua AppDbContext."

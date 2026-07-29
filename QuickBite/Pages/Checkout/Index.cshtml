@@ -43,20 +43,44 @@ else
                             <span asp-validation-for="Input.Phone" class="text-danger"></span>
                         </div>
 
-                        <div class="mb-3">
+                        <fieldset class="mb-3">
+                            <label asp-for="Input.OrderType" class="form-label"></label>
+                            <div class="d-flex gap-3">
+                                <label class="order-type-option">
+                                    <input asp-for="Input.OrderType" type="radio"
+                                           value="@QuickBite.Models.OrderType.Delivery" data-order-type />
+                                    <span>Giao hàng</span>
+                                </label>
+                                <label class="order-type-option">
+                                    <input asp-for="Input.OrderType" type="radio"
+                                           value="@QuickBite.Models.OrderType.Pickup" data-order-type />
+                                    <span>Nhận tại quán</span>
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <div class="mb-3" id="address-block">
                             <label asp-for="Input.Address" class="form-label"></label>
                             <textarea asp-for="Input.Address" class="form-control" rows="3"
                                       autocomplete="street-address"
                                       placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."></textarea>
-                            <div class="form-check mt-2">
-                                <input id="direct-pickup" class="form-check-input" type="checkbox"
-                                       data-direct-pickup />
-                                <label class="form-check-label" for="direct-pickup">
-                                    Nhận trực tiếp tại quán (không giao hàng)
-                                </label>
-                            </div>
                             <span asp-validation-for="Input.Address" class="text-danger"></span>
                         </div>
+
+                        @if (Model.IsParty)
+                        {
+                            <div class="alert alert-warning">
+                                <strong>Đơn đặt tiệc</strong> (trên @Model.PartyThreshold.ToString("N0")đ tiền món):
+                                cần hẹn giờ nhận trước tối thiểu @Model.PartyMinLeadHours giờ và đặt cọc
+                                @Model.PartyDepositPercent% (~@Model.EstimatedDeposit.ToString("N0")đ).
+                                Quán sẽ xét duyệt trước khi nhận đơn.
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Input.ScheduledFor" class="form-label"></label>
+                                <input asp-for="Input.ScheduledFor" type="datetime-local" class="form-control" />
+                                <span asp-validation-for="Input.ScheduledFor" class="text-danger"></span>
+                            </div>
+                        }
 
                         <div class="mb-0">
                             <label asp-for="Input.Note" class="form-label"></label>
@@ -147,8 +171,12 @@ else
                             <span>Tổng số lượng</span>
                             <strong>@Model.TotalQuantity</strong>
                         </div>
-                        <div class="d-flex justify-content-between fs-4 border-top pt-3">
-                            <span>Tổng cộng</span>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tiền món</span>
+                            <strong>@Model.Total.ToString("N0") đ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between fs-5 border-top pt-3">
+                            <span>Tổng cộng (chưa gồm phí giao)</span>
                             <strong class="text-primary">@Model.Total.ToString("N0") đ</strong>
                         </div>
 
@@ -163,7 +191,9 @@ else
                             Xác nhận đặt hàng
                         </button>
                         <p class="small text-muted text-center mt-2 mb-0">
-                            Giá và tình trạng món sẽ được kiểm tra lại khi xác nhận.
+                            Đơn giao hàng cộng phí giao @Model.DeliveryFee.ToString("N0") đ,
+                            tối thiểu @Model.MinimumDeliverySubtotal.ToString("N0") đ tiền món.
+                            Hóa đơn cuối hiển thị ở trang tra cứu.
                         </p>
                     </div>
                 </div>
@@ -176,31 +206,21 @@ else
     <partial name="_ValidationScriptsPartial" />
     <script>
         (() => {
-            const directPickup = document.querySelector('[data-direct-pickup]');
-            const addressInput = document.getElementById('Input_Address');
-            const directPickupText = 'Nhận trực tiếp';
+            const addressBlock = document.getElementById('address-block');
+            const radios = document.querySelectorAll('[data-order-type]');
 
-            if (!directPickup || !addressInput) {
+            if (!addressBlock || radios.length === 0) {
                 return;
             }
 
-            directPickup.checked = addressInput.value.trim() === directPickupText;
-
-            const updateAddress = () => {
-                if (directPickup.checked) {
-                    addressInput.value = directPickupText;
-                    addressInput.readOnly = true;
-                    return;
-                }
-
-                if (addressInput.value.trim() === directPickupText) {
-                    addressInput.value = '';
-                }
-                addressInput.readOnly = false;
+            const sync = () => {
+                const pickupSelected = Array.from(radios)
+                    .some(radio => radio.checked && radio.value === 'Pickup');
+                addressBlock.hidden = pickupSelected;
             };
 
-            directPickup.addEventListener('change', updateAddress);
-            updateAddress();
+            radios.forEach(radio => radio.addEventListener('change', sync));
+            sync();
         })();
 
         (() => {

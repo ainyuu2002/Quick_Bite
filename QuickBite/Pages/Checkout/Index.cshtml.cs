@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 using QuickBite.Models;
 using QuickBite.Services;
 
@@ -11,18 +12,35 @@ public sealed class IndexModel : PageModel
 {
     private const string CartKey = "Cart";
     private readonly OrderService _orderService;
+    private readonly OrderingOptions _options;
     private readonly CustomerAccountService _accounts;
     private readonly LoyaltyService _loyalty;
 
     public IndexModel(
         OrderService orderService,
+        IOptions<OrderingOptions> options,
         CustomerAccountService accounts,
         LoyaltyService loyalty)
     {
         _orderService = orderService;
+        _options = options.Value;
         _accounts = accounts;
         _loyalty = loyalty;
     }
+
+    public decimal DeliveryFee => _options.DeliveryFee;
+
+    public decimal MinimumDeliverySubtotal => _options.MinimumDeliverySubtotal;
+
+    public decimal PartyThreshold => _options.PartyThreshold;
+
+    public int PartyDepositPercent => _options.PartyDepositPercent;
+
+    public int PartyMinLeadHours => _options.PartyMinLeadHours;
+
+    public bool IsParty => Total > _options.PartyThreshold;
+
+    public decimal EstimatedDeposit => Math.Round(Total * _options.PartyDepositPercent / 100m, 0);
 
     [BindProperty]
     public CheckoutInput Input { get; set; } = new();
@@ -82,6 +100,25 @@ public sealed class IndexModel : PageModel
             ModelState.AddModelError(string.Empty, "Giỏ hàng đang trống. Vui lòng chọn món trước khi thanh toán.");
         }
 
+        if (Input.OrderType == OrderType.Delivery && string.IsNullOrWhiteSpace(Input.Address))
+        {
+            ModelState.AddModelError("Input.Address", "Vui lòng nhập địa chỉ giao hàng.");
+        }
+
+        if (IsParty)
+        {
+            var earliest = DateTime.Now.AddHours(_options.PartyMinLeadHours);
+            if (Input.ScheduledFor is null)
+            {
+                ModelState.AddModelError("Input.ScheduledFor", "Vui lòng chọn thời gian nhận tiệc.");
+            }
+            else if (Input.ScheduledFor < earliest)
+            {
+                ModelState.AddModelError("Input.ScheduledFor",
+                    $"Phải hẹn trước tối thiểu {_options.PartyMinLeadHours} giờ.");
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -93,9 +130,12 @@ public sealed class IndexModel : PageModel
                 new CreateOrderRequest(
                     Input.CustomerName,
                     Input.Phone,
-                    Input.Address,
+                    Input.OrderType == OrderType.Pickup ? null : Input.Address,
                     Input.Note,
+                    Input.OrderType,
                     Input.PaymentMethod!.Value,
+                    IsParty,
+                    Input.ScheduledFor,
                     Cart.Select(item => new CreateOrderItem(item.MenuItemId, item.Quantity)).ToArray(),
                     customerId,
                     Input.PromotionCode,
@@ -103,8 +143,7 @@ public sealed class IndexModel : PageModel
                 cancellationToken);
 
             HttpContext.Session.Remove(CartKey);
-            OrderTrackingSession.GrantAccess(HttpContext.Session, order.Phone);
-            return RedirectToPage("/Orders/Track", new { created = true });
+            return RedirectToPage("/Orders/Track", new { code = order.OrderCode, created = true });
         }
         catch (OrderValidationException exception)
         {
@@ -160,14 +199,19 @@ public sealed class IndexModel : PageModel
         [Display(Name = "Số điện thoại")]
         public string Phone { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Vui lòng nhập địa chỉ giao hàng.")]
+        [Display(Name = "Hình thức nhận hàng")]
+        public OrderType OrderType { get; set; } = OrderType.Delivery;
+
         [StringLength(500, ErrorMessage = "Địa chỉ không được vượt quá 500 ký tự.")]
         [Display(Name = "Địa chỉ giao hàng")]
-        public string Address { get; set; } = string.Empty;
+        public string? Address { get; set; }
 
         [StringLength(500, ErrorMessage = "Ghi chú không được vượt quá 500 ký tự.")]
         [Display(Name = "Ghi chú")]
         public string? Note { get; set; }
+
+        [Display(Name = "Thời gian nhận tiệc")]
+        public DateTime? ScheduledFor { get; set; }
 
         [Required(ErrorMessage = "Vui lòng chọn phương thức thanh toán.")]
         [Display(Name = "Phương thức thanh toán")]

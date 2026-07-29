@@ -26,7 +26,6 @@ public class IndexModel : PageModel
         _connectionTracker = connectionTracker;
     }
 
-    /// <summary>Số nhân viên đang trực lúc trang được render (JS cập nhật tiếp qua SignalR).</summary>
     public int StaffOnline => _connectionTracker.StaffOnline;
 
     public PagedResult<Order> Result { get; set; } = default!;
@@ -39,17 +38,45 @@ public class IndexModel : PageModel
 
     public string SortDir { get; private set; } = "desc";
 
+    public IReadOnlyList<ReasonCatalog> Reasons { get; private set; } = [];
+
+    public IReadOnlySet<string> BlacklistedPhones { get; private set; } = new HashSet<string>();
+
+    public IReadOnlyDictionary<int, string> StatusReasons { get; private set; } = new Dictionary<int, string>();
+
+    public static IReadOnlyList<OrderStatus> AdminNextStatuses(OrderStatus current, OrderType orderType)
+        => Enum.GetValues<OrderStatus>()
+            .Where(next => current.CanTransitionTo(next, orderType)
+                && next != OrderStatus.Expired
+                && next != OrderStatus.Cancelled)
+            .ToList();
+
+    public IReadOnlyList<ReasonCatalog> ReasonsFor(OrderStatus status)
+    {
+        var kind = ReasonKindExtensions.ForStatus(status);
+        return kind is null
+            ? []
+            : Reasons.Where(reason => reason.Kind == kind).ToList();
+    }
+
     public async Task OnGetAsync(
         OrderStatus status = OrderStatus.Pending,
         string? search = null,
         string sortBy = "date",
-        string sortDir = "desc",
+        string sortDir = "asc",
         int pageNumber = 1)
     {
         CurrentStatus = status;
         Search = search;
         SortBy = sortBy == "total" ? "total" : "date";
         SortDir = sortDir == "asc" ? "asc" : "desc";
+
+        Reasons = await _context.ReasonCatalogs
+            .AsNoTracking()
+            .Where(reason => reason.IsActive)
+            .OrderBy(reason => reason.Kind)
+            .ThenBy(reason => reason.DisplayOrder)
+            .ToListAsync();
 
         var query = _context.Orders
             .AsNoTracking()
@@ -64,6 +91,7 @@ public class IndexModel : PageModel
             query = query.Where(o =>
                 o.CustomerName.Contains(keyword) ||
                 o.Phone.Contains(keyword) ||
+                o.OrderCode.Contains(keyword) ||
                 o.Id.ToString() == keyword);
         }
 
@@ -76,11 +104,28 @@ public class IndexModel : PageModel
         };
 
         Result = await PagedResult<Order>.CreateAsync(query, pageNumber, PageSize);
+
+        BlacklistedPhones = await _orderService.GetBlacklistedPhonesAsync(
+            Result.Items.Select(order => order.Phone));
+
+        var orderIds = Result.Items.Select(order => order.Id).ToList();
+        var reasonRows = await _context.OrderStatusHistories
+            .AsNoTracking()
+            .Where(history => orderIds.Contains(history.OrderId) && history.Reason != null)
+            .Select(history => new { history.OrderId, history.Reason, history.ChangedAt })
+            .ToListAsync();
+        StatusReasons = reasonRows
+            .GroupBy(row => row.OrderId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.OrderByDescending(row => row.ChangedAt).First().Reason!);
     }
 
     public async Task<IActionResult> OnPostChangeStatusAsync(
         int orderId,
         OrderStatus nextStatus,
+        string? reason = null,
+        string? reasonOther = null,
         OrderStatus currentStatus = OrderStatus.Pending,
         string? search = null,
         string sortBy = "date",
@@ -95,6 +140,13 @@ public class IndexModel : PageModel
         sortDir = sortDir == "asc" ? "asc" : "desc";
         pageNumber = Math.Max(1, pageNumber);
 
+        var isManager = User.IsInRole(nameof(AccountRole.Manager));
+        if (nextStatus == OrderStatus.Cancelled && !isManager)
+        {
+            TempData["ErrorMessage"] = "Chỉ quản lý mới được hủy đơn.";
+            return RedirectToPage(new { status = currentStatus, search, sortBy, sortDir, pageNumber });
+        }
+
         try
         {
             var actorAccountId = int.TryParse(
@@ -102,10 +154,12 @@ public class IndexModel : PageModel
                 ? accountId
                 : (int?)null;
 
+            var effectiveReason = reason == "__other__" ? reasonOther : reason;
             var order = await _orderService.ChangeStatusAsync(
                 orderId,
                 nextStatus,
                 actorAccountId,
+                effectiveReason,
                 cancellationToken);
 
             TempData["SuccessMessage"] =
@@ -138,4 +192,98 @@ public class IndexModel : PageModel
             pageNumber
         });
     }
+
+    public async Task<IActionResult> OnPostUpdateContactAsync(
+        int orderId,
+        string customerName,
+        string phone,
+        string? address,
+        OrderStatus currentStatus = OrderStatus.Pending,
+        string? search = null,
+        string sortBy = "date",
+        string sortDir = "desc",
+        int pageNumber = 1,
+        CancellationToken cancellationToken = default)
+    {
+        currentStatus = Enum.IsDefined(currentStatus) ? currentStatus : OrderStatus.Pending;
+        sortBy = sortBy == "total" ? "total" : "date";
+        sortDir = sortDir == "asc" ? "asc" : "desc";
+        pageNumber = Math.Max(1, pageNumber);
+
+        try
+        {
+            await _orderService.UpdateContactAsync(orderId, customerName, phone, address, cancellationToken);
+            TempData["SuccessMessage"] = $"Đã cập nhật thông tin liên hệ đơn #{orderId}.";
+        }
+        catch (OrderValidationException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+        catch (KeyNotFoundException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToPage(new
+        {
+            status = currentStatus,
+            search,
+            sortBy,
+            sortDir,
+            pageNumber
+        });
+    }
+
+    public async Task<IActionResult> OnPostApprovePartyAsync(
+        int orderId,
+        OrderStatus currentStatus = OrderStatus.PendingReview,
+        string? search = null,
+        string sortBy = "date",
+        string sortDir = "asc",
+        int pageNumber = 1,
+        CancellationToken cancellationToken = default)
+    {
+        currentStatus = Enum.IsDefined(currentStatus) ? currentStatus : OrderStatus.PendingReview;
+        var actorAccountId = int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId) ? accountId : (int?)null;
+
+        try
+        {
+            await _orderService.ApprovePartyAsync(orderId, actorAccountId, cancellationToken);
+            TempData["SuccessMessage"] = $"Đã duyệt đơn tiệc #{orderId}. Chờ khách đặt cọc.";
+        }
+        catch (Exception exception) when (exception is OrderValidationException or KeyNotFoundException)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToPage(new { status = currentStatus, search, sortBy, sortDir, pageNumber });
+    }
+
+    public async Task<IActionResult> OnPostRecordDepositAsync(
+        int orderId,
+        OrderStatus currentStatus = OrderStatus.PendingReview,
+        string? search = null,
+        string sortBy = "date",
+        string sortDir = "asc",
+        int pageNumber = 1,
+        CancellationToken cancellationToken = default)
+    {
+        currentStatus = Enum.IsDefined(currentStatus) ? currentStatus : OrderStatus.PendingReview;
+        var actorAccountId = int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId) ? accountId : (int?)null;
+
+        try
+        {
+            await _orderService.RecordDepositAsync(orderId, actorAccountId, cancellationToken);
+            TempData["SuccessMessage"] = $"Đã ghi nhận cọc đơn #{orderId}. Đơn chuyển sang chuẩn bị.";
+        }
+        catch (Exception exception) when (exception is OrderValidationException or KeyNotFoundException)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToPage(new { status = currentStatus, search, sortBy, sortDir, pageNumber });
+    }
+
 }

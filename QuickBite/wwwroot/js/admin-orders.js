@@ -1,14 +1,4 @@
-// admin-orders.js — SignalR client phía admin/staff (Dev D — Tùng; mở rộng bảng admin: Dev A — Dũng)
-// Cách dùng (trang /Pages/Admin/Orders của A, hoặc trang test /Staff/Board):
-//   <script src=".../signalr.min.js"></script>
-//   <script src="~/js/admin-orders.js"></script>
-// Phần tử trang có thì dùng, không có thì bỏ qua (không lỗi):
-//   #ordersTableBody — <tbody> bảng đơn của /Admin/Orders, có data-current-status = tab đang xem
-//   #orderList       — <ul> danh sách đơn (trang test /Staff/Board của D)
-//   #liveBanner      — băng "có đơn mới / đơn vừa đổi" + nút Tải lại
-//   #staffOnline     — chỗ hiện số màn hình staff online
-//   #newOrderBadge   — badge đếm đơn mới (FR-17)
-//   #liveDot / #liveLabel — chỉ báo realtime đang sống
+
 (function () {
     const STATUS_PENDING = 0;
     const STATUS_CANCELLED = 5;

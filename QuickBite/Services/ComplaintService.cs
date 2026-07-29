@@ -25,7 +25,12 @@ public sealed class ComplaintService
         string description,
         CancellationToken cancellationToken = default)
     {
-        var order = await LoadEligibleOrderAsync(orderId, phone, cancellationToken);
+        var order = await LoadOwnedOrderAsync(orderId, phone, cancellationToken);
+        if (!order.Status.CanReceiveComplaint())
+        {
+            throw new CustomerFlowException(
+                "Chỉ gửi được phản ánh cho đơn hoàn tất, bị từ chối hoặc giao thất bại.");
+        }
 
         var exists = await _db.Complaints
             .AnyAsync(c => c.OrderId == order.Id, cancellationToken);
@@ -73,7 +78,11 @@ public sealed class ComplaintService
             throw new CustomerFlowException("Số sao phải từ 1 đến 5.");
         }
 
-        var order = await LoadEligibleOrderAsync(orderId, phone, cancellationToken);
+        var order = await LoadOwnedOrderAsync(orderId, phone, cancellationToken);
+        if (!order.Status.CanReceiveRating())
+        {
+            throw new CustomerFlowException("Chỉ chấm điểm được khi đơn đã hoàn tất.");
+        }
 
         var exists = await _db.InternalRatings
             .AnyAsync(r => r.OrderId == order.Id, cancellationToken);
@@ -92,7 +101,7 @@ public sealed class ComplaintService
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<Order> LoadEligibleOrderAsync(
+    private async Task<Order> LoadOwnedOrderAsync(
         int orderId,
         string phone,
         CancellationToken cancellationToken)
@@ -104,11 +113,6 @@ public sealed class ComplaintService
                 o => o.Id == orderId && o.Phone == normalizedPhone,
                 cancellationToken)
             ?? throw new CustomerFlowException("Không tìm thấy đơn hàng.");
-
-        if (order.Status != OrderStatus.Completed)
-        {
-            throw new CustomerFlowException("Chỉ gửi được phản hồi cho đơn đã hoàn tất.");
-        }
 
         if (order.CreatedAt < DateTime.Now.AddDays(-FeedbackWindowDays))
         {

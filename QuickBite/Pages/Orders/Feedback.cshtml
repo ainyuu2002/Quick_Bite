@@ -9,11 +9,13 @@
     <div>
         <h1 class="mb-1">Đánh giá & Phản ánh</h1>
         <p class="text-muted mb-0">
-            Đơn #@Model.Order.Id · @Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+            Đơn @Model.Order.OrderCode · @Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")
             · @Model.Order.Total.ToString("N0") đ
         </p>
     </div>
-    <a asp-page="/Orders/Track" class="btn btn-outline-secondary">Quay lại theo dõi đơn</a>
+    <a asp-page="/Orders/Track"
+       asp-route-code="@Model.Order.OrderCode"
+       class="btn btn-outline-secondary">Quay lại theo dõi đơn</a>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(Model.Message))
@@ -38,7 +40,7 @@
                         Đánh giá chỉ gửi riêng cho chủ quán để cải thiện chất lượng.
                     </p>
                 }
-                else if (Model.Order.Status != OrderStatus.Completed)
+                else if (!Model.Order.Status.CanReceiveRating())
                 {
                     <p class="text-muted mb-0">Chỉ chấm điểm được khi đơn đã hoàn tất.</p>
                 }
@@ -48,7 +50,7 @@
                         Đánh giá chỉ gửi riêng cho chủ quán, không hiển thị công khai.
                     </p>
                     <form method="post" asp-page-handler="Rate">
-                        <input type="hidden" name="orderId" value="@Model.Order.Id" />
+                        <input type="hidden" asp-for="Code" />
                         <div class="d-flex gap-2 mb-3">
                             @for (var stars = 1; stars <= 5; stars++)
                             {
@@ -85,14 +87,16 @@
                         </div>
                     }
                 }
-                else if (Model.Order.Status != OrderStatus.Completed)
+                else if (!Model.Order.Status.CanReceiveComplaint())
                 {
-                    <p class="text-muted mb-0">Chỉ gửi được phản ánh khi đơn đã hoàn tất.</p>
+                    <p class="text-muted mb-0">
+                        Chỉ gửi được phản ánh cho đơn hoàn tất, bị từ chối hoặc giao thất bại.
+                    </p>
                 }
                 else
                 {
                     <form method="post" asp-page-handler="Complain">
-                        <input type="hidden" name="orderId" value="@Model.Order.Id" />
+                        <input type="hidden" asp-for="Code" />
 
                         <div class="mb-3">
                             <label class="form-label" for="complaint-category">Vấn đề gặp phải</label>

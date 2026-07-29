@@ -7,16 +7,28 @@
     bool isStaff = path.StartsWithSegments("/Admin/Staff");
     bool isRevenueReport = path.Equals("/Admin/Reports/Revenue");
     bool isMenuPerformanceReport = path.Equals("/Admin/Reports/MenuPerformance");
+    bool isKitchen = path.StartsWithSegments("/Admin/Kitchen");
+    bool isShipper = path.StartsWithSegments("/Admin/Shipper");
+    bool isBlacklist = path.StartsWithSegments("/Admin/Blacklist");
     bool isStoreOperations = path.Equals("/Admin/Operations/Store");
     bool isMenuAvailability = path.Equals("/Admin/Operations/MenuAvailability");
     bool isPromotions = path.StartsWithSegments("/Admin/Promotions");
     bool isComplaints = path.StartsWithSegments("/Admin/Complaints");
     bool isIngredients = path.StartsWithSegments("/Admin/Ingredients");
 
-    // Ẩn mục chỉ dành cho chủ quán không phải là bảo mật — chặn thật nằm ở policy
-    // ManagerOnly trong Program.cs. Ẩn ở đây chỉ để nhân viên khỏi bấm vào rồi ăn trang từ chối.
-    bool isManager = User.IsInRole(InternalRoles.Manager);
-    bool canManageIngredients = isManager || User.IsInRole(InternalRoles.Kitchen);
+    // Ẩn mục theo vai không phải là bảo mật — chặn thật nằm ở policy trong Program.cs.
+    // Ẩn ở đây chỉ để mỗi vai khỏi bấm vào trang ngoài quyền rồi ăn trang từ chối.
+    bool isOwner = User.IsInRole(InternalRoles.Manager);
+    bool canStaff = isOwner || User.IsInRole(InternalRoles.Staff);
+    bool canKitchen = isOwner || User.IsInRole(InternalRoles.Kitchen);
+    bool canShipper = isOwner || User.IsInRole(InternalRoles.Shipper);
+    bool isManager = isOwner;
+    bool canManageIngredients = isOwner || User.IsInRole(InternalRoles.Kitchen);
+
+    string brandPage = canStaff ? "/Admin/Orders/Index"
+        : canKitchen ? "/Admin/Kitchen/Index"
+        : canShipper ? "/Admin/Shipper/Index"
+        : "/Admin/Orders/Index";
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -33,7 +45,7 @@
 <body class="admin-app">
     <div class="admin-shell">
         <aside class="admin-rail">
-            <a class="admin-rail__brand" asp-page="/Admin/Orders/Index">
+            <a class="admin-rail__brand" asp-page="@brandPage">
                 <span class="admin-rail__mark" aria-hidden="true">QB</span>
                 <span>
                     <span class="admin-rail__name">QuickBite</span>
@@ -42,18 +54,35 @@
             </a>
 
             <nav class="admin-rail__nav" aria-label="Điều hướng quản trị">
-                <a class="admin-rail__link" asp-page="/Admin/Orders/Index" aria-current="@(isOrders ? "page" : null)">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 2.5h10v11H3zM5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
-                    Đơn hàng
-                </a>
-                <a class="admin-rail__link" asp-page="/Admin/Operations/Store" aria-current="@(isStoreOperations ? "page" : null)">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 6.5h11M3.5 6.5v7h9v-7M2 6.5l1.5-4h9l1.5 4M6 13.5v-4h4v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                    Cửa hàng
-                </a>
-                <a class="admin-rail__link" asp-page="/Admin/Complaints/Index" aria-current="@(isComplaints ? "page" : null)">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 3v-3h-2zM5 6h6M5 8.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                    Phản ánh
-                </a>
+                @if (canStaff)
+                {
+                    <a class="admin-rail__link" asp-page="/Admin/Orders/Index" aria-current="@(isOrders ? "page" : null)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 2.5h10v11H3zM5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
+                        Đơn hàng
+                    </a>
+                    <a class="admin-rail__link" asp-page="/Admin/Operations/Store" aria-current="@(isStoreOperations ? "page" : null)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 6.5h11M3.5 6.5v7h9v-7M2 6.5l1.5-4h9l1.5 4M6 13.5v-4h4v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        Cửa hàng
+                    </a>
+                    <a class="admin-rail__link" asp-page="/Admin/Complaints/Index" aria-current="@(isComplaints ? "page" : null)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 3v-3h-2zM5 6h6M5 8.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        Phản ánh
+                    </a>
+                }
+                @if (canKitchen)
+                {
+                    <a class="admin-rail__link" asp-page="/Admin/Kitchen/Index" aria-current="@(isKitchen ? "page" : null)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 2.5v4M6 2.5v4M5 6.5v7M9.5 2.5c-1 1.5-1 3.5 0 5v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        Bếp
+                    </a>
+                }
+                @if (canShipper)
+                {
+                    <a class="admin-rail__link" asp-page="/Admin/Shipper/Index" aria-current="@(isShipper ? "page" : null)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.5 4.5h7v6h-7zM8.5 6.5h3l2 2v2h-5zM4 12.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM11 12.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        Shipper
+                    </a>
+                }
                 @if (canManageIngredients)
                 {
                     <a class="admin-rail__link" asp-page="/Admin/Ingredients/Index" aria-current="@(isIngredients ? "page" : null)">
@@ -88,6 +117,10 @@
                     <a class="admin-rail__link" asp-page="/Admin/Reports/MenuPerformance" aria-current="@(isMenuPerformanceReport ? "page" : null)">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 13.5h11M4 11l2.5-3 2 1.5L12 5M10.5 5H12v1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
                         Hiệu quả món
+                    </a>
+                    <a class="admin-rail__link" asp-page="/Admin/Blacklist/Index" aria-current="@(isBlacklist ? "page" : null)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5 2.5 4v3.5c0 3.2 2.3 5.6 5.5 7 3.2-1.4 5.5-3.8 5.5-7V4L8 1.5ZM6 8l4-4M10 8 6 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                        SĐT cảnh báo
                     </a>
                 }
             </nav>
