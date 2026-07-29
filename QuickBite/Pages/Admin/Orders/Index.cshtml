@@ -358,6 +358,31 @@
                                                 </button>
                                             </form>
                                         }
+                                        @if ((User.IsInRole(nameof(AccountRole.Admin)) || User.IsInRole(nameof(AccountRole.Manager)))
+                                            && order.Status is OrderStatus.Confirmed or OrderStatus.Preparing or OrderStatus.Ready)
+                                        {
+                                            <form method="post" asp-page-handler="ChangeStatus" class="order-action-form">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <input type="hidden" name="nextStatus" value="@OrderStatus.Cancelled" />
+                                                <input type="hidden" name="currentStatus" value="@Model.CurrentStatus" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                                <input type="hidden" name="pageNumber" value="@Model.Result.Page" />
+                                                <span class="reason-group" data-reason-group>
+                                                    <select name="reason" class="input" required aria-label="Lý do hủy đơn" data-reason-select>
+                                                        <option value="">— Lý do hủy —</option>
+                                                        @foreach (var reasonOption in Model.ReasonsFor(OrderStatus.Cancelled))
+                                                        {
+                                                            <option value="@reasonOption.Text">@reasonOption.Text</option>
+                                                        }
+                                                        <option value="__other__">Khác…</option>
+                                                    </select>
+                                                    <input type="text" name="reasonOther" class="input" placeholder="Nhập lý do" data-reason-other hidden />
+                                                </span>
+                                                <button class="btn btn--danger-quiet btn--sm" type="submit">Hủy đơn (sự cố)</button>
+                                            </form>
+                                        }
                                     }
                                 </div>
                             </div>

@@ -27,7 +27,7 @@ public static class OrderStatusExtensions
         OrderStatus.Ready => "Sẵn sàng",
         OrderStatus.Delivering => "Đang giao",
         OrderStatus.Completed => "Hoàn tất",
-        OrderStatus.Cancelled => "Khách đã hủy",
+        OrderStatus.Cancelled => "Đã hủy",
         OrderStatus.Rejected => "Đã từ chối",
         OrderStatus.Expired => "Quá hạn",
         OrderStatus.DeliveryFailed => "Giao thất bại",
@@ -39,7 +39,8 @@ public static class OrderStatusExtensions
     {
         OrderStatus.Confirmed => current is OrderStatus.Pending or OrderStatus.PendingReview,
         OrderStatus.Rejected => current is OrderStatus.Pending or OrderStatus.PendingReview,
-        OrderStatus.Cancelled => current is OrderStatus.Pending,
+        OrderStatus.Cancelled => current is OrderStatus.Pending or OrderStatus.Confirmed
+            or OrderStatus.Preparing or OrderStatus.Ready,
         OrderStatus.Expired => current is OrderStatus.Pending or OrderStatus.PendingReview,
         OrderStatus.Preparing => current is OrderStatus.Confirmed,
         OrderStatus.Ready => current is OrderStatus.Preparing,
