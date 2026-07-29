@@ -93,6 +93,33 @@ Assert(!OrderStatus.PendingReview.IsTerminal(), "PendingReview chưa phải tr�
 
 Console.WriteLine("Order state machine v2 tests passed.");
 
+Assert(OrderStatus.Completed.CanReceiveRating(), "Đơn hoàn tất được đánh giá sao.");
+Assert(!OrderStatus.Rejected.CanReceiveRating(), "Đơn bị từ chối không được đánh giá sao.");
+Assert(!OrderStatus.DeliveryFailed.CanReceiveRating(), "Đơn giao thất bại không được đánh giá sao.");
+
+Assert(OrderStatus.Completed.CanReceiveComplaint(), "Đơn hoàn tất được gửi phản ánh.");
+Assert(OrderStatus.Rejected.CanReceiveComplaint(), "Đơn bị từ chối được gửi phản ánh.");
+Assert(OrderStatus.DeliveryFailed.CanReceiveComplaint(), "Đơn giao thất bại được gửi phản ánh.");
+Assert(!OrderStatus.Cancelled.CanReceiveComplaint(), "Đơn khách hủy không thuộc phạm vi phản ánh.");
+Assert(!OrderStatus.Pending.CanReceiveComplaint(), "Đơn đang chờ không được gửi phản ánh.");
+
+Assert(OrderStatus.Cancelled.ShouldReleaseQuota(), "Đơn hủy phải hoàn quota.");
+Assert(OrderStatus.Rejected.ShouldReleaseQuota(), "Đơn từ chối phải hoàn quota.");
+Assert(OrderStatus.Expired.ShouldReleaseQuota(), "Đơn hết hạn phải hoàn quota.");
+Assert(!OrderStatus.Completed.ShouldReleaseQuota(), "Đơn hoàn tất không hoàn quota.");
+Assert(!OrderStatus.DeliveryFailed.ShouldReleaseQuota(), "Đơn giao thất bại không hoàn quota.");
+
+var deliveryOrder = new Order
+{
+    Total = 125_000m,
+    DeliveryFee = 25_000m
+};
+Assert(deliveryOrder.Subtotal == 100_000m, "Subtotal phải loại phí giao hàng.");
+Assert(LoyaltyService.PointsFor(deliveryOrder.Subtotal) == 10,
+    "Điểm phải tính trên subtotal, không gồm phí giao hàng.");
+
+Console.WriteLine("Feedback, quota release and loyalty policy tests passed.");
+
 const string codeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 var sampleCode = OrderCodeGenerator.Generate();
 Assert(sampleCode.StartsWith("QB-"), "Mã tra cứu phải bắt đầu bằng QB-.");

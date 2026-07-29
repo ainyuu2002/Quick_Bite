@@ -18,10 +18,8 @@ public sealed class StoreModel : PageModel
 
     public bool CanManageBusinessHours => User.IsInRole(InternalRoles.Manager);
 
-    [BindProperty]
     public BusinessHoursInput BusinessHours { get; set; } = new();
 
-    [BindProperty]
     public PauseInput Pause { get; set; } = new();
 
     public sealed class BusinessHoursInput
@@ -46,6 +44,8 @@ public sealed class StoreModel : PageModel
         => await LoadAsync(cancellationToken);
 
     public async Task<IActionResult> OnPostUpdateHoursAsync(
+        TimeOnly? opensAt,
+        TimeOnly? closesAt,
         CancellationToken cancellationToken = default)
     {
         if (!CanManageBusinessHours)
@@ -53,7 +53,17 @@ public sealed class StoreModel : PageModel
             return Forbid();
         }
 
-        ModelState.Remove($"{nameof(Pause)}.{nameof(PauseInput.Reason)}");
+        BusinessHours.OpensAt = opensAt;
+        BusinessHours.ClosesAt = closesAt;
+        if (opensAt is null)
+        {
+            ModelState.AddModelError(nameof(opensAt), "Vui lòng chọn giờ mở cửa.");
+        }
+        if (closesAt is null)
+        {
+            ModelState.AddModelError(nameof(closesAt), "Vui lòng chọn giờ đóng cửa.");
+        }
+
         if (!ModelState.IsValid)
         {
             await LoadAsync(cancellationToken, preserveHoursInput: true);
@@ -61,8 +71,8 @@ public sealed class StoreModel : PageModel
         }
 
         await _storeAvailability.UpdateBusinessHoursAsync(
-            BusinessHours.OpensAt!.Value,
-            BusinessHours.ClosesAt!.Value,
+            opensAt!.Value,
+            closesAt!.Value,
             GetCurrentAccountId(),
             cancellationToken);
 
@@ -71,17 +81,21 @@ public sealed class StoreModel : PageModel
     }
 
     public async Task<IActionResult> OnPostPauseAsync(
+        string pauseReason,
         CancellationToken cancellationToken = default)
     {
-        ModelState.Remove(
-            $"{nameof(BusinessHours)}.{nameof(BusinessHoursInput.OpensAt)}");
-        ModelState.Remove(
-            $"{nameof(BusinessHours)}.{nameof(BusinessHoursInput.ClosesAt)}");
-        if (string.IsNullOrWhiteSpace(Pause.Reason))
+        Pause.Reason = pauseReason?.Trim() ?? string.Empty;
+        if (Pause.Reason.Length == 0)
         {
             ModelState.AddModelError(
-                $"{nameof(Pause)}.{nameof(PauseInput.Reason)}",
+                nameof(pauseReason),
                 "Vui lòng nhập lý do tạm ngưng.");
+        }
+        else if (Pause.Reason.Length > 200)
+        {
+            ModelState.AddModelError(
+                nameof(pauseReason),
+                "Lý do tối đa 200 ký tự.");
         }
 
         if (!ModelState.IsValid)

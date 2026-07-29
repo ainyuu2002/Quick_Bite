@@ -68,7 +68,7 @@ public sealed class TrackModel : PageModel
             {
                 SuggestRegistration = true;
                 RegistrationPhone = Order.Phone;
-                PotentialPoints = LoyaltyService.PointsFor(Order.Total);
+                PotentialPoints = LoyaltyService.PointsFor(Order.Subtotal);
             }
         }
 

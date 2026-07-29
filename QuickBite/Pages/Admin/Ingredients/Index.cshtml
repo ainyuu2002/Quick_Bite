@@ -29,10 +29,15 @@
     <section class="form-surface ingredient-create">
         <h2 class="section-title">Thêm nguyên liệu</h2>
         <form method="post" asp-page-handler="Create" class="ingredient-create__form">
+            <div asp-validation-summary="ModelOnly" class="field-error"></div>
             <div class="field">
-                <label asp-for="Create.Name" class="label">Tên nguyên liệu</label>
-                <input asp-for="Create.Name" class="input" placeholder="Ví dụ: Cá basa" />
-                <span asp-validation-for="Create.Name" class="field-error"></span>
+                <label for="ingredientName" class="label">Tên nguyên liệu</label>
+                <input id="ingredientName" name="ingredientName" value="@Model.Create.Name"
+                       class="input" placeholder="Ví dụ: Cá basa" />
+                @Html.ValidationMessage(
+                    "ingredientName",
+                    null,
+                    new { @class = "field-error" })
             </div>
             <button type="submit" class="btn btn--primary">Thêm</button>
         </form>
@@ -91,14 +96,14 @@
                 <details class="ingredient-links">
                     <summary>Chọn món sử dụng nguyên liệu</summary>
                     <form method="post" asp-page-handler="UpdateLinks">
-                        <input type="hidden" name="Links.IngredientId" value="@ingredient.Id" />
+                        <input type="hidden" name="ingredientId" value="@ingredient.Id" />
                         <div class="ingredient-checklist">
                             @foreach (var menuItem in Model.MenuItems)
                             {
                                 var isChecked = ingredient.Dishes.Any(
                                     link => link.MenuItemId == menuItem.Id);
                                 <label class="ingredient-check">
-                                    <input type="checkbox" name="Links.MenuItemIds"
+                                    <input type="checkbox" name="menuItemIds"
                                            value="@menuItem.Id" checked="@isChecked" />
                                     <span>@menuItem.Name</span>
                                 </label>

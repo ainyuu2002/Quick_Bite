@@ -88,4 +88,13 @@ public static class OrderStatusExtensions
 
     public static bool CanBeCancelledByCustomer(this OrderStatus current)
         => current == OrderStatus.Pending;
+
+    public static bool ShouldReleaseQuota(this OrderStatus status)
+        => status is OrderStatus.Cancelled or OrderStatus.Rejected or OrderStatus.Expired;
+
+    public static bool CanReceiveRating(this OrderStatus status)
+        => status == OrderStatus.Completed;
+
+    public static bool CanReceiveComplaint(this OrderStatus status)
+        => status is OrderStatus.Completed or OrderStatus.Rejected or OrderStatus.DeliveryFailed;
 }

@@ -70,11 +70,15 @@
     else
     {
         <form method="post" asp-page-handler="Pause" class="form-grid">
+            <div asp-validation-summary="ModelOnly" class="field-error"></div>
             <div class="field field--wide">
-                <label asp-for="Pause.Reason" class="label">Lý do tạm ngưng</label>
-                <textarea asp-for="Pause.Reason" class="textarea"
+                <label for="pauseReason" class="label">Lý do tạm ngưng</label>
+                <textarea id="pauseReason" name="pauseReason" class="textarea"
                           placeholder="Ví dụ: Bếp đang quá tải trong 30 phút"></textarea>
-                <span asp-validation-for="Pause.Reason" class="field-error"></span>
+                @Html.ValidationMessage(
+                    "pauseReason",
+                    null,
+                    new { @class = "field-error" })
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn btn--danger">Tạm ngưng nhận đơn</button>
@@ -93,14 +97,16 @@
 
         <form method="post" asp-page-handler="UpdateHours" class="form-grid">
             <div class="field">
-                <label asp-for="BusinessHours.OpensAt" class="label">Giờ mở cửa</label>
-                <input asp-for="BusinessHours.OpensAt" type="time" class="input" />
-                <span asp-validation-for="BusinessHours.OpensAt" class="field-error"></span>
+                <label for="opensAt" class="label">Giờ mở cửa</label>
+                <input id="opensAt" name="opensAt" value="@Model.BusinessHours.OpensAt?.ToString("HH:mm")"
+                       type="time" class="input" />
+                @Html.ValidationMessage("opensAt", null, new { @class = "field-error" })
             </div>
             <div class="field">
-                <label asp-for="BusinessHours.ClosesAt" class="label">Giờ đóng cửa</label>
-                <input asp-for="BusinessHours.ClosesAt" type="time" class="input" />
-                <span asp-validation-for="BusinessHours.ClosesAt" class="field-error"></span>
+                <label for="closesAt" class="label">Giờ đóng cửa</label>
+                <input id="closesAt" name="closesAt" value="@Model.BusinessHours.ClosesAt?.ToString("HH:mm")"
+                       type="time" class="input" />
+                @Html.ValidationMessage("closesAt", null, new { @class = "field-error" })
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn btn--primary">Lưu giờ mở cửa</button>

@@ -166,12 +166,14 @@
             </form>
         }
 
-        @if (order.Status == OrderStatus.Completed)
+        @if (order.Status.CanReceiveRating() || order.Status.CanReceiveComplaint())
         {
             <div class="mb-4">
                 <a asp-page="/Orders/Feedback"
                    asp-route-code="@order.OrderCode"
-                   class="btn btn-outline-primary">Đánh giá / Phản ánh đơn này</a>
+                   class="btn btn-outline-primary">
+                    @(order.Status.CanReceiveRating() ? "Đánh giá / Phản ánh đơn này" : "Phản ánh đơn này")
+                </a>
             </div>
         }
 

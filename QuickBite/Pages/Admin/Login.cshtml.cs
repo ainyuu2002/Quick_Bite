@@ -36,6 +36,19 @@ namespace QuickBite.Pages.Admin
             _ => "/Admin/Orders/Index"
         };
 
+        private static bool TryGetInternalRole(AccountRole role, out string internalRole)
+        {
+            internalRole = role switch
+            {
+                AccountRole.Manager => InternalRoles.Manager,
+                AccountRole.Staff => InternalRoles.Staff,
+                AccountRole.Kitchen => InternalRoles.Kitchen,
+                AccountRole.Shipper => InternalRoles.Shipper,
+                _ => string.Empty
+            };
+            return internalRole.Length > 0;
+        }
+
         public IActionResult OnGet()
         {
             if (User.Identity?.IsAuthenticated == true)
@@ -76,18 +89,19 @@ namespace QuickBite.Pages.Admin
                 return Page();
             }
 
+            if (!TryGetInternalRole(user.Role, out var internalRole))
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Vai trò tài khoản không hợp lệ. Vui lòng liên hệ người quản trị dữ liệu.");
+                return Page();
+            }
+
             var claims = new List<Claim>
             {
                 new (ClaimTypes.Name, user.Username),
                 new (ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new (ClaimTypes.Role, user.Role switch
-                {
-                    AccountRole.Manager => InternalRoles.Manager,
-                    AccountRole.Staff => InternalRoles.Staff,
-                    AccountRole.Kitchen => InternalRoles.Kitchen,
-                    AccountRole.Shipper => InternalRoles.Shipper,
-                    _ => throw new InvalidOperationException("Vai trò tài khoản không hợp lệ.")
-                })
+                new (ClaimTypes.Role, internalRole)
             };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);

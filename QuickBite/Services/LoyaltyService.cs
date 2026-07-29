@@ -65,7 +65,7 @@ public sealed class LoyaltyService
             return;
         }
 
-        var points = PointsFor(order.Total);
+        var points = PointsFor(order.Subtotal);
         if (points <= 0)
         {
             return;
@@ -85,7 +85,7 @@ public sealed class LoyaltyService
             Points = points,
             Type = PointEntryType.Earn,
             OrderId = order.Id,
-            Note = $"Đơn #{order.Id} hoàn tất",
+            Note = $"Đơn {order.OrderCode} hoàn tất",
             CreatedAt = DateTime.Now
         });
         await _db.SaveChangesAsync(cancellationToken);

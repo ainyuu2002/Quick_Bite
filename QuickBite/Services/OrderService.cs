@@ -1,10 +1,13 @@
 using System.ComponentModel.DataAnnotations;
+using System.Data;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuickBite.Data;
 using QuickBite.Hubs;
 using QuickBite.Models;
+using QuickBite.Modules.Operations.MenuAvailability;
+using QuickBite.Modules.Operations.Store;
 using QuickBite.Services.Events;
 
 namespace QuickBite.Services;
@@ -40,6 +43,8 @@ public sealed class OrderService
     private readonly IDiscountService _discounts;
     private readonly IOrderEventPublisher _events;
     private readonly IOrderEvents _retention;
+    private readonly IStoreAvailabilityService _storeAvailability;
+    private readonly IMenuAvailabilityService _menuAvailability;
     private readonly OrderingOptions _options;
 
     public OrderService(
@@ -48,6 +53,8 @@ public sealed class OrderService
         IDiscountService discounts,
         IOrderEventPublisher events,
         IOrderEvents retention,
+        IStoreAvailabilityService storeAvailability,
+        IMenuAvailabilityService menuAvailability,
         IOptions<OrderingOptions> options)
     {
         _db = db;
@@ -55,6 +62,8 @@ public sealed class OrderService
         _discounts = discounts;
         _events = events;
         _retention = retention;
+        _storeAvailability = storeAvailability;
+        _menuAvailability = menuAvailability;
         _options = options.Value;
     }
 
@@ -99,6 +108,22 @@ public sealed class OrderService
             throw new OrderValidationException(
                 $"Mỗi món chỉ được đặt tối đa {MaximumQuantityPerItem} phần trong một đơn thường. " +
                 "Số lượng lớn vui lòng dùng chức năng Đặt tiệc.");
+        }
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
+
+        var storeStatus = await _storeAvailability.GetStatusAsync(
+            cancellationToken: cancellationToken);
+        if (!storeStatus.IsAcceptingOrders)
+        {
+            var message = storeStatus.IsPaused
+                ? string.IsNullOrWhiteSpace(storeStatus.PauseReason)
+                    ? "Quán đang tạm ngưng nhận đơn."
+                    : $"Quán đang tạm ngưng nhận đơn: {storeStatus.PauseReason}"
+                : $"Quán chỉ nhận đơn từ {storeStatus.OpensAt:HH\\:mm} đến {storeStatus.ClosesAt:HH\\:mm}.";
+            throw new OrderValidationException(message);
         }
 
         var menuItemIds = normalizedItems.Select(item => item.MenuItemId).ToArray();
@@ -172,6 +197,18 @@ public sealed class OrderService
                 $"Đơn giao hàng tối thiểu {_options.MinimumDeliverySubtotal:N0}đ tiền món (chưa gồm phí giao).");
         }
 
+        var quotaItems = normalizedItems
+            .Select(item => new MenuQuotaRequest(item.MenuItemId, item.Quantity))
+            .ToArray();
+        var reservation = await _menuAvailability.TryReserveAsync(
+            quotaItems,
+            cancellationToken: cancellationToken);
+        if (!reservation.Success)
+        {
+            throw new OrderValidationException(
+                reservation.ErrorMessage ?? "Một số món hiện không thể nhận thêm đơn.");
+        }
+
         var deliveryFee = request.OrderType == OrderType.Delivery ? _options.DeliveryFee : 0m;
         var orderCode = await GenerateUniqueOrderCodeAsync(cancellationToken);
 
@@ -228,6 +265,7 @@ public sealed class OrderService
         _db.Orders.Add(order);
         await _db.SaveChangesAsync(cancellationToken);
         await _discounts.CommitAsync(order, quote, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         await _hub.Clients.Group("staff").SendAsync("NewOrder", new
         {
@@ -284,7 +322,11 @@ public sealed class OrderService
         CancellationToken cancellationToken = default)
     {
         var normalizedCode = orderCode.Trim().ToUpperInvariant();
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
         var order = await _db.Orders
+            .Include(item => item.Items)
             .SingleOrDefaultAsync(item => item.OrderCode == normalizedCode, cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng với mã này.");
 
@@ -300,6 +342,9 @@ public sealed class OrderService
         AddStatusHistory(order, fromStatus, OrderStatus.Cancelled, trimmedReason, null);
 
         await _db.SaveChangesAsync(cancellationToken);
+        await ReleaseQuotaIfNeededAsync(order, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await transaction.DisposeAsync();
 
         await _retention.OrderCancelledAsync(order, cancellationToken);
         await NotifyStatusChangedAsync(order, cancellationToken);
@@ -365,7 +410,11 @@ public sealed class OrderService
             throw new OrderValidationException("Trạng thái đơn hàng không hợp lệ.");
         }
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
         var order = await _db.Orders
+            .Include(item => item.Items)
             .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
 
@@ -399,6 +448,9 @@ public sealed class OrderService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await ReleaseQuotaIfNeededAsync(order, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await transaction.DisposeAsync();
 
         if (nextStatus == OrderStatus.Completed)
         {
@@ -481,6 +533,24 @@ public sealed class OrderService
             ChangedByAccountId = actorAccountId,
             ChangedAt = DateTime.Now
         });
+    }
+
+    private Task ReleaseQuotaIfNeededAsync(
+        Order order,
+        CancellationToken cancellationToken)
+    {
+        if (!order.Status.ShouldReleaseQuota())
+        {
+            return Task.CompletedTask;
+        }
+
+        var items = order.Items
+            .Select(item => new MenuQuotaRequest(item.MenuItemId, item.Quantity))
+            .ToArray();
+        return _menuAvailability.ReleaseAsync(
+            items,
+            DateOnly.FromDateTime(order.CreatedAt),
+            cancellationToken);
     }
 
     private Task PublishStatusEventAsync(Order order, string? reason, CancellationToken cancellationToken)
